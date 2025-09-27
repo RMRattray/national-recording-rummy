@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Card, RummyGame, Suit, Value } from '$lib';
+    import CardBox from '$lib/cardbox.svelte';
 
 	// Current player state
 	let playerName = 'Alice'; // Current user
@@ -7,7 +8,7 @@
 	// Sample game data
 	const sampleGame = new RummyGame(
 		'game123',
-		['Alice', 'Bob', 'Charlie'], // 4 players including user
+		['Alice', 'Bob', 'Charlie', 'Diana'], // 4 players including user
 		[
 			new Card(Suit.HEARTS, Value.ACE),
 			new Card(Suit.DIAMONDS, Value.TWO),
@@ -17,11 +18,11 @@
 			new Card(Suit.DIAMONDS, Value.SIX),
 			new Card(Suit.CLUBS, Value.SEVEN)
 		],
-		[7, 7, 7], // hand counts for each player
+		[7, 7, 7, 7], // hand counts for each player
 		[
-			[new Card(Suit.HEARTS, Value.KING), new Card(Suit.DIAMONDS, Value.KING), new Card(Suit.CLUBS, Value.KING)],
-			[new Card(Suit.SPADES, Value.ACE), new Card(Suit.SPADES, Value.TWO), new Card(Suit.SPADES, Value.THREE)],
-			[new Card(Suit.CLUBS, Value.JACK), new Card(Suit.CLUBS, Value.QUEEN), new Card(Suit.CLUBS, Value.KING)]
+			[[new Card(Suit.HEARTS, Value.KING), new Card(Suit.DIAMONDS, Value.KING), new Card(Suit.CLUBS, Value.KING)],[new Card(Suit.SPADES, Value.ACE), new Card(Suit.SPADES, Value.TWO), new Card(Suit.SPADES, Value.THREE)]]
+			[[new Card(Suit.SPADES, Value.ACE), new Card(Suit.SPADES, Value.TWO), new Card(Suit.SPADES, Value.THREE)]],
+			[[new Card(Suit.CLUBS, Value.JACK), new Card(Suit.CLUBS, Value.QUEEN), new Card(Suit.CLUBS, Value.KING)]],[]
 		],
 		[
 			new Card(Suit.SPADES, Value.JACK),
@@ -45,36 +46,7 @@
 	// Get other players (excluding current user)
 	$: otherPlayers = sampleGame.playerNames.filter(name => name !== playerName);
 
-	// Helper function to get card display
-	function getCardDisplay(card: Card): string {
-		return `${card.value.charAt(0).toUpperCase() + card.value.slice(1)} of ${card.suit.charAt(0).toUpperCase() + card.suit.slice(1)}`;
-	}
-
-	// Helper function to get card color
-	function getCardColor(suit: Suit): string {
-		return suit === Suit.HEARTS || suit === Suit.DIAMONDS ? 'red' : 'black';
-	}
-
-	// Helper function to get suit symbol
-	function getSuitSymbol(suit: Suit): string {
-		switch (suit) {
-			case Suit.HEARTS: return '♥';
-			case Suit.DIAMONDS: return '♦';
-			case Suit.CLUBS: return '♣';
-			case Suit.SPADES: return '♠';
-		}
-	}
-
-	// Helper function to get value symbol
-	function getValueSymbol(value: Value): string {
-		switch (value) {
-			case Value.ACE: return 'A';
-			case Value.JACK: return 'J';
-			case Value.QUEEN: return 'Q';
-			case Value.KING: return 'K';
-			default: return value.slice(0, 1).toUpperCase();
-		}
-	}
+	
 </script>
 
 <div class="game-container">
@@ -98,20 +70,10 @@
 				<!-- Melds -->
 				<div class="melds">
 					{#if otherPlayers.length > 0}
-						{#each sampleGame.melds[sampleGame.playerNames.indexOf(otherPlayers[0])] as meldCard}
-							<div class="card revealed-card" style="color: {getCardColor(meldCard.suit)}">
-								<div class="card-top">
-									<span class="value">{getValueSymbol(meldCard.value)}</span>
-									<span class="suit">{getSuitSymbol(meldCard.suit)}</span>
-								</div>
-								<div class="card-center">
-									<span class="suit-large">{getSuitSymbol(meldCard.suit)}</span>
-								</div>
-								<div class="card-bottom">
-									<span class="suit">{getSuitSymbol(meldCard.suit)}</span>
-									<span class="value">{getValueSymbol(meldCard.value)}</span>
-								</div>
-							</div>
+						{#each sampleGame.melds[sampleGame.playerNames.indexOf(otherPlayers[0])] as meld}
+                        {#each meld as card}
+							<CardBox card={card} revealed={true} />
+							{/each}
 						{/each}
 					{/if}
 				</div>
@@ -119,9 +81,7 @@
 				<div class="player-hand">
 					{#if otherPlayers.length > 0}
 						{#each Array(sampleGame.handCts[sampleGame.playerNames.indexOf(otherPlayers[0])]) as _, i}
-							<div class="card hidden-card">
-								<div class="card-back">🂠</div>
-							</div>
+							<CardBox card={new Card(Suit.SPADES, Value.ACE)} revealed={false} />
 						{/each}
 					{/if}
 				</div>
@@ -135,19 +95,8 @@
 				<h3>Discard Pile</h3>
 				<div class="discards">
 					{#each sampleGame.discards as card}
-						<div class="card revealed-card" style="color: {getCardColor(card.suit)}">
-							<div class="card-top">
-								<span class="value">{getValueSymbol(card.value)}</span>
-								<span class="suit">{getSuitSymbol(card.suit)}</span>
-							</div>
-							<div class="card-center">
-								<span class="suit-large">{getSuitSymbol(card.suit)}</span>
-							</div>
-							<div class="card-bottom">
-								<span class="suit">{getSuitSymbol(card.suit)}</span>
-								<span class="value">{getValueSymbol(card.value)}</span>
-							</div>
-						</div>
+						<CardBox card={card} revealed={true} />
+						
 					{/each}
 				</div>
 			</div>
@@ -160,19 +109,8 @@
 				</div>
 				<div class="your-hand">
 					{#each sampleGame.hand as card}
-						<div class="card revealed-card" style="color: {getCardColor(card.suit)}">
-							<div class="card-top">
-								<span class="value">{getValueSymbol(card.value)}</span>
-								<span class="suit">{getSuitSymbol(card.suit)}</span>
-							</div>
-							<div class="card-center">
-								<span class="suit-large">{getSuitSymbol(card.suit)}</span>
-							</div>
-							<div class="card-bottom">
-								<span class="suit">{getSuitSymbol(card.suit)}</span>
-								<span class="value">{getValueSymbol(card.value)}</span>
-							</div>
-						</div>
+						    <CardBox card={card} revealed={true} />
+							
 					{/each}
 				</div>
 			</div>
@@ -188,20 +126,10 @@
 				<!-- Melds -->
 				<div class="melds">
 					{#if otherPlayers.length > 1}
-						{#each sampleGame.melds[sampleGame.playerNames.indexOf(otherPlayers[1])] as meldCard}
-							<div class="card revealed-card" style="color: {getCardColor(meldCard.suit)}">
-								<div class="card-top">
-									<span class="value">{getValueSymbol(meldCard.value)}</span>
-									<span class="suit">{getSuitSymbol(meldCard.suit)}</span>
-								</div>
-								<div class="card-center">
-									<span class="suit-large">{getSuitSymbol(meldCard.suit)}</span>
-								</div>
-								<div class="card-bottom">
-									<span class="suit">{getSuitSymbol(meldCard.suit)}</span>
-									<span class="value">{getValueSymbol(meldCard.value)}</span>
-								</div>
-							</div>
+						    {#each sampleGame.melds[sampleGame.playerNames.indexOf(otherPlayers[1])] as meld}
+							{#each meld as card}
+							<CardBox card={card} revealed={true} />
+							{/each}
 						{/each}
 					{/if}
 				</div>
@@ -209,9 +137,7 @@
 				<div class="player-hand">
 					{#if otherPlayers.length > 1}
 						{#each Array(sampleGame.handCts[sampleGame.playerNames.indexOf(otherPlayers[1])]) as _, i}
-							<div class="card hidden-card">
-								<div class="card-back">🂠</div>
-							</div>
+							<CardBox card={new Card(Suit.SPADES, Value.ACE)} revealed={false} />
 						{/each}
 					{/if}
 				</div>
@@ -399,68 +325,7 @@
 	}
 
 
-	/* Card styling */
-	.card {
-		width: 35px;
-		height: 49px;
-		border-radius: 4px;
-		border: 1px solid #333;
-		position: relative;
-		display: flex;
-		flex-direction: column;
-		justify-content: space-between;
-		padding: 2px;
-		font-size: 0.5rem;
-		box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
-		cursor: pointer;
-		transition: transform 0.2s ease;
-	}
 
-	.card:hover {
-		transform: translateY(-1px);
-		box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.4);
-	}
-
-	.revealed-card {
-		background: white;
-	}
-
-	.hidden-card {
-		background: linear-gradient(135deg, #1e3c72, #2a5298);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-
-	.card-back {
-		font-size: 1rem;
-		color: #FFD700;
-	}
-
-	.card-top, .card-bottom {
-		display: flex;
-		justify-content: space-between;
-		align-items: flex-start;
-	}
-
-	.card-bottom {
-		transform: rotate(180deg);
-	}
-
-	.card-center {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		flex: 1;
-	}
-
-	.suit-large {
-		font-size: 0.8rem;
-	}
-
-	.value {
-		font-weight: bold;
-	}
 
 	/* Section headers */
 	.player-info {

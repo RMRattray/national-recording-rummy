@@ -9,19 +9,19 @@ export enum Suit {
 }
 
 export enum Value {
-    ACE = 'ace',
-    TWO = 'two',
-    THREE = 'three',
-    FOUR = 'four',
-    FIVE = 'five',
-    SIX = 'six',
-    SEVEN = 'seven',
-    EIGHT = 'eight',
-    NINE = 'nine',
-    TEN = 'ten',
-    JACK = 'jack',
-    QUEEN = 'queen',
-    KING = 'king'
+    ACE = 'A',
+    TWO = '2',
+    THREE = '3',
+    FOUR = '4',
+    FIVE = '5',
+    SIX = '6',
+    SEVEN = '7',
+    EIGHT = '8',
+    NINE = '9',
+    TEN = '10',
+    JACK = 'J',
+    QUEEN = 'Q',
+    KING = 'K'
 }
 
 // Card class
@@ -41,7 +41,7 @@ export class RummyGame {
     playerNames: string[];
     hand: Card[];
     handCts: number[];
-    melds: Card[][]; // by player, then by meld, then by 
+    melds: Card[][][]; // by player, then by meld, then by 
     discards: Card[];
     stack: number;
     activePlayerName: string;
@@ -53,7 +53,7 @@ export class RummyGame {
         playerNames: string[],
         hand: Card[],
         handCts: number[],
-        melds: Card[][],
+        melds: Card[][][],
         discards: Card[],
         stack: number,
         activePlayerName: string,
