@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Card, RummyGame, Suit, Value } from '$lib';
     import CardBox from '$lib/cardbox.svelte';
+    import Playerbox from '$lib/playerbox.svelte';
 
 	// Current player state
 	let playerName = 'Alice'; // Current user
@@ -31,7 +32,7 @@
 		],
 		20, // stack
 		'Bob', // active player
-		3,
+		4,
 		[
 			'Game started',
 			'Alice drew a card',
@@ -44,105 +45,36 @@
 	);
 
 	// Get other players (excluding current user)
-	$: otherPlayers = sampleGame.playerNames.filter(name => name !== playerName);
+    $: myPlayerIndex = sampleGame.playerNames.indexOf(playerName);
 
-	
 </script>
 
 <div class="game-container">
-	<header>
-		<h1>National Recording Rummy</h1>
-		<div class="game-info">
-			<span>Game ID: {sampleGame.gameID}</span>
-			<span>Stack: {sampleGame.stack}</span>
-			<span>Player: {playerName}</span>
-		</div>
-	</header>
 
 	<main class="game-main">
-		<!-- Left player -->
-		<div class="player-left" class:active={otherPlayers.length > 0 && otherPlayers[0] === sampleGame.activePlayerName}>
-			<div class="player-info">
-				<span class="player-name">{otherPlayers.length > 0 ? otherPlayers[0] : 'Player 1'}</span>
-				<span class="card-count">({otherPlayers.length > 0 ? sampleGame.handCts[sampleGame.playerNames.indexOf(otherPlayers[0])] : 0} cards)</span>
-			</div>
-			<div class="player-area vertical">
-				<!-- Melds -->
-				<div class="melds">
-					{#if otherPlayers.length > 0}
-						{#each sampleGame.melds[sampleGame.playerNames.indexOf(otherPlayers[0])] as meld}
-                        {#each meld as card}
-							<CardBox card={card} revealed={true} />
-							{/each}
-						{/each}
-					{/if}
-				</div>
-				<!-- Hand -->
-				<div class="player-hand">
-					{#if otherPlayers.length > 0}
-						{#each Array(sampleGame.handCts[sampleGame.playerNames.indexOf(otherPlayers[0])]) as _, i}
-							<CardBox card={new Card(Suit.SPADES, Value.ACE)} revealed={false} />
-						{/each}
-					{/if}
-				</div>
-			</div>
-		</div>
-
-		<!-- Center area with discard pile and current player -->
-		<div class="center-area">
-			<!-- Discard pile -->
+        {#if sampleGame.playerCount > 2}
+        <Playerbox game={sampleGame} playerIndex={(myPlayerIndex + 1) % sampleGame.playerCount} vertical={true} lefttop={true} user={false}/> 
+        {/if}
+        <div class="center-area">
+            <Playerbox game={sampleGame} playerIndex={sampleGame.playerCount == 2 ? 1 - myPlayerIndex : (myPlayerIndex + 2) % sampleGame.playerCount} vertical={false} lefttop={true} user={false}/>
+            <!-- Discard pile -->
 			<div class="discards-section">
 				<h3>Discard Pile</h3>
 				<div class="discards">
+                    {#if sampleGame.stack > 0}
+                    <CardBox card={new Card(Suit.SPADES, Value.ACE)} revealed={false}/>
+                    {/if}
 					{#each sampleGame.discards as card}
 						<CardBox card={card} revealed={true} />
 						
 					{/each}
 				</div>
 			</div>
-
-			<!-- Current player's hand -->
-			<div class="your-hand-section" class:active={playerName === sampleGame.activePlayerName}>
-				<div class="player-info">
-					<span class="player-name">{playerName} (You)</span>
-					<span class="card-count">({sampleGame.hand.length} cards)</span>
-				</div>
-				<div class="your-hand">
-					{#each sampleGame.hand as card}
-						    <CardBox card={card} revealed={true} />
-							
-					{/each}
-				</div>
-			</div>
-		</div>
-
-		<!-- Right player -->
-		<div class="player-right" class:active={otherPlayers.length > 1 && otherPlayers[1] === sampleGame.activePlayerName}>
-			<div class="player-info">
-				<span class="player-name">{otherPlayers.length > 1 ? otherPlayers[1] : 'Player 2'}</span>
-				<span class="card-count">({otherPlayers.length > 1 ? sampleGame.handCts[sampleGame.playerNames.indexOf(otherPlayers[1])] : 0} cards)</span>
-			</div>
-			<div class="player-area vertical">
-				<!-- Melds -->
-				<div class="melds">
-					{#if otherPlayers.length > 1}
-						    {#each sampleGame.melds[sampleGame.playerNames.indexOf(otherPlayers[1])] as meld}
-							{#each meld as card}
-							<CardBox card={card} revealed={true} />
-							{/each}
-						{/each}
-					{/if}
-				</div>
-				<!-- Hand -->
-				<div class="player-hand">
-					{#if otherPlayers.length > 1}
-						{#each Array(sampleGame.handCts[sampleGame.playerNames.indexOf(otherPlayers[1])]) as _, i}
-							<CardBox card={new Card(Suit.SPADES, Value.ACE)} revealed={false} />
-						{/each}
-					{/if}
-				</div>
-			</div>
-		</div>
+            <Playerbox game={sampleGame} playerIndex={myPlayerIndex} vertical={false} lefttop={false} user={true}/>
+        </div>
+        {#if sampleGame.playerCount > 3}
+        <Playerbox game={sampleGame} playerIndex={(myPlayerIndex + 3) % sampleGame.playerCount} vertical={true} lefttop={true} user={false}/> 
+        {/if}
 	</main>
 
 	<!-- Event log positioned alongside game-main -->
@@ -160,7 +92,7 @@
 	.game-container {
 		height: 100vh;
 		display: flex;
-		flex-direction: column;
+		flex-direction: row;
 		background: linear-gradient(135deg, #0f4c3a, #1a5f3f);
 		color: white;
 		font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -198,33 +130,6 @@
 		min-height: 0;
 	}
 
-	/* Player positioning */
-	.player-left {
-		flex: 1;
-		background: rgba(0, 0, 0, 0.3);
-		border-radius: 6px;
-		padding: 0.5rem;
-		border: 2px solid transparent;
-		transition: all 0.3s ease;
-		min-width: 150px;
-		max-width: 200px;
-		display: flex;
-		flex-direction: column;
-	}
-
-	.player-right {
-		flex: 1;
-		background: rgba(0, 0, 0, 0.3);
-		border-radius: 6px;
-		padding: 0.5rem;
-		border: 2px solid transparent;
-		transition: all 0.3s ease;
-		min-width: 150px;
-		max-width: 200px;
-		display: flex;
-		flex-direction: column;
-	}
-
 	.center-area {
 		flex: 2;
 		display: flex;
@@ -234,7 +139,7 @@
 		min-width: 0;
 	}
 
-	.discards-section, .your-hand-section {
+	.discards-section {
 		background: rgba(0, 0, 0, 0.3);
 		border-radius: 6px;
 		padding: 0.5rem;
@@ -242,75 +147,10 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
+        flex: 2;
 	}
 
-	.your-hand-section {
-		flex: 1;
-		border: 2px solid transparent;
-		transition: all 0.3s ease;
-	}
-
-	.your-hand-section.active {
-		border-color: #FFD700;
-		background: rgba(255, 215, 0, 0.1);
-		box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
-	}
-
-	/* Active player highlighting */
-	.player-left.active,
-	.player-right.active {
-		border-color: #FFD700;
-		background: rgba(255, 215, 0, 0.1);
-		box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
-	}
-
-	/* Player info */
-	.player-info {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: 0.5rem;
-		font-size: 0.8rem;
-	}
-
-	.player-name {
-		font-weight: bold;
-		color: #90EE90;
-	}
-
-	.card-count {
-		font-size: 0.7rem;
-		opacity: 0.8;
-	}
-
-	/* Player areas */
-	.player-area {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-	}
-
-	.player-area.vertical {
-		align-items: center;
-	}
-
-	/* Melds and hands */
-	.melds {
-		display: flex;
-		gap: 0.2rem;
-		flex-wrap: wrap;
-		justify-content: center;
-		margin-bottom: 0.5rem;
-	}
-
-	.player-hand {
-		display: flex;
-		gap: 0.1rem;
-		flex-wrap: wrap;
-		justify-content: center;
-	}
-
-	.discards, .your-hand {
+	.discards {
 		display: flex;
 		gap: 0.2rem;
 		flex-wrap: wrap;
@@ -324,20 +164,9 @@
 		font-size: 0.9rem;
 	}
 
-
-
-
-	/* Section headers */
-	.player-info {
-		margin: 0 0 0.5rem 0;
-		color: #90EE90;
-		text-align: center;
-		font-size: 0.9rem;
-	}
-
 	/* Event log */
 	.event-log-section {
-		position: fixed;
+		/* position: fixed; */
 		top: 0.5rem;
 		right: 0.5rem;
 		width: 250px;
@@ -350,6 +179,7 @@
 		flex-direction: column;
 		overflow: hidden;
 		z-index: 1000;
+        margin: 6px;
 	}
 
 	.event-log-section h3 {
@@ -397,15 +227,6 @@
 
 	/* Responsive adjustments for very small screens */
 	@media (max-height: 500px) {
-		.card {
-			width: 30px;
-			height: 42px;
-			font-size: 0.4rem;
-		}
-		
-		.suit-large {
-			font-size: 0.6rem;
-		}
 		
 		.event-log-section {
 			width: 150px;
@@ -420,12 +241,4 @@
 		}
 	}
 
-	/* Adjust for different player counts */
-	@media (max-width: 800px) {
-		.player-left,
-		.player-right {
-			min-width: 100px;
-			max-width: 110px;
-		}
-	}
 </style>
