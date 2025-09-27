@@ -21,9 +21,19 @@
 		],
 		[7, 7, 7, 7], // hand counts for each player
 		[
-			[[new Card(Suit.HEARTS, Value.KING), new Card(Suit.DIAMONDS, Value.KING), new Card(Suit.CLUBS, Value.KING)],[new Card(Suit.SPADES, Value.ACE), new Card(Suit.SPADES, Value.TWO), new Card(Suit.SPADES, Value.THREE)]]
-			[[new Card(Suit.SPADES, Value.ACE), new Card(Suit.SPADES, Value.TWO), new Card(Suit.SPADES, Value.THREE)]],
-			[[new Card(Suit.CLUBS, Value.JACK), new Card(Suit.CLUBS, Value.QUEEN), new Card(Suit.CLUBS, Value.KING)]],[]
+			[
+                [new Card(Suit.HEARTS, Value.KING), new Card(Suit.DIAMONDS, Value.KING), new Card(Suit.CLUBS, Value.KING)],
+                [new Card(Suit.SPADES, Value.ACE), new Card(Suit.SPADES, Value.TWO), new Card(Suit.SPADES, Value.THREE)]
+            ],
+			[
+                [new Card(Suit.SPADES, Value.ACE), new Card(Suit.SPADES, Value.TWO), new Card(Suit.SPADES, Value.THREE)]
+            ],
+			[
+                [new Card(Suit.CLUBS, Value.JACK), new Card(Suit.CLUBS, Value.QUEEN), new Card(Suit.CLUBS, Value.KING)]
+            ],
+            [
+                [new Card(Suit.DIAMONDS, Value.JACK), new Card(Suit.DIAMONDS, Value.QUEEN), new Card(Suit.DIAMONDS, Value.KING)]
+            ]
 		],
 		[
 			new Card(Suit.SPADES, Value.JACK),

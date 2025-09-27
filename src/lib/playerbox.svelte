@@ -27,7 +27,7 @@
 	class:user
 >
 	<div class="player-info">
-		<span class="player-name">{playerName}{user ? ' (You)' : ''}, index: {playerIndex}</span>
+		<span class="player-name">{playerName}{user ? ' (You)' : ''}</span>
 		<span class="card-count">({user ? playerHand.length : handCount} cards)</span>
 	</div>
 	
@@ -35,9 +35,11 @@
 		<!-- Melds -->
 		<div class="melds">
 			{#each playerMelds as meld}
+            <div class="meld">
 				{#each meld as card}
 					<CardBox card={card} revealed={true} />
 				{/each}
+            </div>
 			{/each}
 		</div>
 		
@@ -116,11 +118,18 @@
 
 	.melds {
 		display: flex;
-		gap: 0.2rem;
+		gap: 0.5rem;
 		flex-wrap: wrap;
 		justify-content: center;
 		margin-bottom: 0.5rem;
 	}
+
+    .meld {
+        display: flex;
+        flex-direction: row;
+        gap: 0.2rem;
+        justify-content: center;
+    }
 
 	.player-hand {
 		display: flex;
