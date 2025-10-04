@@ -2,7 +2,7 @@
     import { RummyGame, Card, Suit, Value } from '$lib';
     import Playerbox from '$lib/playerbox.svelte';
     import CardBox from '$lib/cardbox.svelte';
-    let { currentGame, playerName }: { currentGame: RummyGame, playerName: string } = $props();
+    let { currentGame, playerName, socket }: { currentGame: RummyGame, playerName: string, socket: any } = $props();
     let myPlayerIndex = $derived(currentGame.playerNames.indexOf(playerName));
 </script>
 

@@ -1,149 +1,30 @@
 <script lang="ts">
-	import { onDestroy } from 'svelte';
+	import { io, type Socket } from 'socket.io-client';
 
-	export let onGameStart: (gameData: any) => void;
+	// Props from parent component
+	export let joinGame: (playerNameInput: string) => Promise<boolean>;
+	export let startGame: () => Promise<boolean>;
+	export let togglePlayer: (player: string) => void;
+	export let players: string[];
+	export let selectedPlayers: Set<string>;
+	export let isLoading: boolean;
+	export let error: string;
+	export let playerToken: string;
+	export let playerName: string;
 
-	let playerName = '';
-	let playerToken = '';
-	let players: string[] = [];
-	let selectedPlayers: Set<string> = new Set();
-	let isLoading = false;
-	let error = '';
-	let pollingInterval: number | null = null;
-
-	// Auto-select current player when they're added to the list
-	$: if (playerName && players.includes(playerName)) {
-		selectedPlayers.add(playerName);
-	}
+	// Local state for the input field
+	let playerNameInput = '';
 
 	// Check if start game button should be enabled
 	$: canStartGame = selectedPlayers.size >= 2 && selectedPlayers.size <= 4;
 
-	async function joinGame() {
-		if (!playerName.trim()) {
-			error = 'Please enter your name';
-			return;
-		}
-
-		isLoading = true;
-		error = '';
-
-		try {
-			const response = await fetch('https://example.com/backend', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify({
-					request_type: 'join',
-					name: playerName.trim()
-				})
-			});
-
-			if (!response.ok) {
-				throw new Error(`HTTP error! status: ${response.status}`);
-			}
-
-			const data = await response.json();
-			players = data.players || [];
-			playerToken = data.playerToken || '';
-
-			// Start polling for game start
-			startPolling();
-
-		} catch (err) {
-			error = 'Failed to join game. Please try again.';
-			console.error('Join error:', err);
-		} finally {
-			isLoading = false;
-		}
+	async function handleJoinGame() {
+		await joinGame(playerNameInput);
 	}
 
-	async function startGame() {
-		if (!canStartGame || !playerToken) return;
-
-		isLoading = true;
-		error = '';
-
-		try {
-			const response = await fetch('https://example.com/backend', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify({
-					request_type: 'start_game',
-					playerToken: playerToken,
-					selectedPlayers: Array.from(selectedPlayers)
-				})
-			});
-
-			if (!response.ok) {
-				throw new Error(`HTTP error! status: ${response.status}`);
-			}
-
-			const gameData = await response.json();
-			stopPolling();
-			onGameStart(gameData);
-
-		} catch (err) {
-			error = 'Failed to start game. Please try again.';
-			console.error('Start game error:', err);
-		} finally {
-			isLoading = false;
-		}
+	async function handleStartGame() {
+		await startGame();
 	}
-
-	function startPolling() {
-		if (pollingInterval) return;
-
-		pollingInterval = setInterval(async () => {
-			if (!playerToken) return;
-
-			try {
-				const response = await fetch('https://example.com/backend', {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-					},
-					body: JSON.stringify({
-						request_type: 'is_game_started',
-						playerToken: playerToken
-					})
-				});
-
-				if (response.ok) {
-					const data = await response.json();
-					if (data.gameStarted && data.gameData) {
-						stopPolling();
-						onGameStart(data.gameData);
-					}
-				}
-			} catch (err) {
-				console.error('Polling error:', err);
-			}
-		}, 1000);
-	}
-
-	function stopPolling() {
-		if (pollingInterval) {
-			clearInterval(pollingInterval);
-			pollingInterval = null;
-		}
-	}
-
-	function togglePlayer(player: string) {
-		if (selectedPlayers.has(player)) {
-			selectedPlayers.delete(player);
-		} else {
-			selectedPlayers.add(player);
-		}
-		selectedPlayers = selectedPlayers; // Trigger reactivity
-	}
-
-	onDestroy(() => {
-		stopPolling();
-	});
 </script>
 
 <div class="welcome-container">
@@ -159,15 +40,15 @@
 					<input 
 						id="playerName"
 						type="text" 
-						bind:value={playerName} 
+						bind:value={playerNameInput} 
 						placeholder="Enter your name"
 						disabled={isLoading}
 					/>
 				</div>
 				<button 
 					class="join-button" 
-					on:click={joinGame}
-					disabled={isLoading || !playerName.trim()}
+					on:click={handleJoinGame}
+					disabled={isLoading || !playerNameInput.trim()}
 				>
 					{isLoading ? 'Joining...' : 'Join Game'}
 				</button>
@@ -206,7 +87,7 @@
 					
 					<button 
 						class="start-button" 
-						on:click={startGame}
+						on:click={handleStartGame}
 						disabled={isLoading || !canStartGame}
 					>
 						{isLoading ? 'Starting...' : 'Start Game'}
