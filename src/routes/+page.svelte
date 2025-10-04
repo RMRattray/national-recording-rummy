@@ -19,6 +19,9 @@
 	// WebSocket connection
 	let socket = $state<Socket | null>(null);
 
+	// Derived values
+	let cantStartGame = $derived(isLoading || selectedPlayers.size < 2 || selectedPlayers.size > 4);
+
 	function handleGameStart(gameData: any) {
 		// Convert the API response to a RummyGame object
 		currentGame = new RummyGame(
@@ -68,7 +71,7 @@
 				
 				// Auto-select current player when they're added to the list
 				if (playerName && players.includes(playerName)) {
-					selectedPlayers.add(playerName);
+					selectedPlayers = new Set([...selectedPlayers, playerName]);
 				}
 
 				// Connect to WebSocket and register player
@@ -167,12 +170,13 @@
 	}
 
 	function togglePlayer(player: string) {
-		if (selectedPlayers.has(player)) {
-			selectedPlayers.delete(player);
+		const newSelectedPlayers = new Set(selectedPlayers);
+		if (newSelectedPlayers.has(player)) {
+			newSelectedPlayers.delete(player);
 		} else {
-			selectedPlayers.add(player);
+			newSelectedPlayers.add(player);
 		}
-		selectedPlayers = selectedPlayers; // Trigger reactivity
+		selectedPlayers = newSelectedPlayers; // Trigger reactivity with new Set
 	}
 
 	onMount(() => {
@@ -197,5 +201,6 @@
 		{error}
 		{playerToken}
 		{playerName}
+		{cantStartGame}
 	/>
 {/if}

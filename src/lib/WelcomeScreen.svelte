@@ -11,12 +11,10 @@
 	export let error: string;
 	export let playerToken: string;
 	export let playerName: string;
+	export let cantStartGame: boolean;
 
 	// Local state for the input field
 	let playerNameInput = '';
-
-	// Check if start game button should be enabled
-	$: canStartGame = selectedPlayers.size >= 2 && selectedPlayers.size <= 4;
 
 	async function handleJoinGame() {
 		await joinGame(playerNameInput);
@@ -88,7 +86,7 @@
 					<button 
 						class="start-button" 
 						on:click={handleStartGame}
-						disabled={isLoading || !canStartGame}
+						disabled={cantStartGame}
 					>
 						{isLoading ? 'Starting...' : 'Start Game'}
 					</button>
