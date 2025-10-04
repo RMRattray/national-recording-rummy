@@ -152,7 +152,6 @@ def start_game():
         "message": "Success message or error"
     }
     """
-    print("Got here")
     try:
         data = request.get_json()
         if not data or 'player_names' not in data:
@@ -187,14 +186,9 @@ def start_game():
                     player_games[player['id']] = game_id
                     player_ids.append(player['id'])
                     break
-        print(f"Player names: {player_names_list}, player_ids: {player_ids}")
 
         game = RummyGame(len(player_names_list), player_names_list, player_ids)
-        print("Was able to construct the game")
-
         active_games[game_id] = game
-
-        print("Got here, too")
         
         # Remove players from waiting list
         waiting_players[:] = [p for p in waiting_players if p['name'] not in player_names_list]
@@ -205,7 +199,6 @@ def start_game():
             for player_id, name in player_names.items():
                 if name == player_name and player_id in player_connections:
                     game_state = get_game_for_player(game_id, player_id)
-                    print(game_state)
                     socketio.emit('game_started', {
                         'success': True,
                         'game_state': game_state,
@@ -264,10 +257,10 @@ def get_game_for_player(game_id: str, player_id: str) -> Dict:
     return {
         "gameID": game_id,
         "playerNames": game.player_names,
-        "hand": [{"suit": card.suit.value, "rank": card.rank.value} for card in game.players_hands[player_id]],
+        "hand": [{"suit": card.suit.value, "value": card.rank.value} for card in game.players_hands[player_id]],
         "handCts": [len(game.players_hands[i]) for i in game.player_ids],
-        "melds": [[[{"suit": card.suit.value, "rank": card.rank.value} for card in meld.cards] for meld in p] for p in [game.players_melds[i] for i in game.player_ids]],
-        "discards": [{"suit": card.suit.value, "rank": card.rank.value} for card in game.discard_pile],
+        "melds": [[[{"suit": card.suit.value, "value": card.rank.value} for card in meld.cards] for meld in p] for p in [game.players_melds[i] for i in game.player_ids]],
+        "discards": [{"suit": card.suit.value, "value": card.rank.value} for card in game.discard_pile],
         "stack": len(game.stack), 
         "activePlayerName": game.player_names[game.current_player], 
         "playerCount": game.num_players,

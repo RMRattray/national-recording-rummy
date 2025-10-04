@@ -4,16 +4,20 @@
     import CardBox from '$lib/cardbox.svelte';
     let { currentGame, playerName, socket }: { currentGame: RummyGame, playerName: string, socket: any } = $props();
     let myPlayerIndex = $derived(currentGame.playerNames.indexOf(playerName));
+ 
+	let leftPlayerIndex = $derived((myPlayerIndex + 1) % currentGame.playerCount)
+	let oppoPlayerIndex = $derived(currentGame.playerCount == 2 ? 1 - myPlayerIndex : (myPlayerIndex + 2) % currentGame.playerCount)
+	let rightPlayerIndex = $derived((myPlayerIndex + 3) % currentGame.playerCount)
 </script>
 
 
 <div class="game-container">
 	<main class="game-main">
         {#if currentGame.playerCount > 2}
-        <Playerbox game={currentGame} playerIndex={(myPlayerIndex + 1) % currentGame.playerCount} vertical={true} lefttop={true} user={false}/> 
+        <Playerbox game={currentGame} playerIndex={leftPlayerIndex} vertical={true} lefttop={true} user={false}/> 
         {/if}
         <div class="center-area">
-            <Playerbox game={currentGame} playerIndex={currentGame.playerCount == 2 ? 1 - myPlayerIndex : (myPlayerIndex + 2) % currentGame.playerCount} vertical={false} lefttop={true} user={false}/>
+            <Playerbox game={currentGame} playerIndex={oppoPlayerIndex} vertical={false} lefttop={true} user={false}/>
             <!-- Discard pile -->
 			<div class="discards-section">
 				<h3>Discard Pile</h3>
@@ -30,7 +34,7 @@
             <Playerbox game={currentGame} playerIndex={myPlayerIndex} vertical={false} lefttop={false} user={true}/>
         </div>
         {#if currentGame.playerCount > 3}
-        <Playerbox game={currentGame} playerIndex={(myPlayerIndex + 3) % currentGame.playerCount} vertical={true} lefttop={true} user={false}/> 
+        <Playerbox game={currentGame} playerIndex={rightPlayerIndex} vertical={true} lefttop={true} user={false}/> 
         {/if}
 	</main>
 

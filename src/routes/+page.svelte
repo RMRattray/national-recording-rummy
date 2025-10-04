@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { RummyGame } from '$lib';
+	import { RummyGame, Card, Suit, Value } from '$lib';
 	import GameContainer from '$lib/game-container.svelte';
 	import WelcomeScreen from '$lib/WelcomeScreen.svelte';
 	import { io, type Socket } from 'socket.io-client';
@@ -22,31 +22,49 @@
 	// Derived values
 	let cantStartGame = $derived(isLoading || selectedPlayers.size < 2 || selectedPlayers.size > 4);
 
+	function convertCardData(cardData: any): Card {
+		return new Card(
+			Suit[cardData.suit.toUpperCase() as keyof typeof Suit],
+			Value[cardData.value as keyof typeof Value]
+		);
+	}
+
+	function convertCardArray(cardArray: any[]): Card[] {
+		return cardArray.map(convertCardData);
+	}
+
+	function convertMeldsData(meldsData: any[]): Card[][][] {
+		return meldsData.map(playerMelds => 
+			playerMelds.map((meld: any) => 
+				meld.map(convertCardData)
+			)
+		);
+	}
+
 	function handleGameStart(gameData: any) {
 		// Convert the API response to a RummyGame object
 		currentGame = new RummyGame(
 			gameData.gameID || 'unknown',
 			gameData.playerNames || [],
-			gameData.hand || [],
+			convertCardArray(gameData.hand || []),
 			gameData.handCts || [],
-			gameData.melds || [],
-			gameData.discards || [],
+			convertMeldsData(gameData.melds || []),
+			convertCardArray(gameData.discards || []),
 			gameData.stack || 0,
 			gameData.activePlayerName || '',
 			gameData.playerCount || 0,
 			gameData.eventLog || []
 		);
-		playerName = gameData.playerName || '';
 	}
 
 	function handleGameUpdate(gameData: any) {
 		currentGame = new RummyGame(
 			gameData.gameID || 'unknown',
 			gameData.playerNames || [],
-			gameData.hand || [],
+			convertCardArray(gameData.hand || []),
 			gameData.handCts || [],
-			gameData.melds || [],
-			gameData.discards || [],
+			convertMeldsData(gameData.melds || []),
+			convertCardArray(gameData.discards || []),
 			gameData.stack || 0,
 			gameData.activePlayerName || '',
 			gameData.playerCount || 0,
@@ -114,6 +132,7 @@
 				players = data.waiting_players?.map((p: any) => p.name) || [];
 				playerToken = data.player_id || '';
 				playerName = playerNameInput.trim();
+				console.log(playerName);
 				
 				// Auto-select current player when they're added to the list
 				if (playerName && players.includes(playerName)) {
