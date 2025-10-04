@@ -39,6 +39,52 @@
 		playerName = gameData.playerName || '';
 	}
 
+	function handleGameUpdate(gameData: any) {
+		currentGame = new RummyGame(
+			gameData.gameID || 'unknown',
+			gameData.playerNames || [],
+			gameData.hand || [],
+			gameData.handCts || [],
+			gameData.melds || [],
+			gameData.discards || [],
+			gameData.stack || 0,
+			gameData.activePlayerName || '',
+			gameData.playerCount || 0,
+			gameData.eventLog || []
+		);
+	}
+
+	async function makeGameMove(move: string, data: any) {
+		const response = await fetch(API_URL + '/game', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({
+				game_id: currentGame?.gameID,
+				player_id: playerToken,
+				move: move,
+				data: data
+			})
+		});
+	}
+
+	async function drawFromStack() {
+		await makeGameMove('draw-stack', {});
+	}
+
+	async function drawFromDiscard(card: any) {
+		await makeGameMove('draw-discard', { card: card });
+	}
+
+	async function playMeld(cards: any, meldType: string) {
+		await makeGameMove('play-meld', { cards: cards, meld_type: meldType });
+	}
+
+	async function discardCard(card: any) {
+		await makeGameMove('discard', { card: card });
+	}
+
 	async function joinGame(playerNameInput: string) {
 		if (!playerNameInput.trim()) {
 			error = 'Please enter your name';
@@ -109,12 +155,12 @@
 			});
 
 			if (!response.ok) {
+				console.error('Start game error:', response);
 				throw new Error(`HTTP error! status: ${response.status}`);
 			}
 
 			const gameData = await response.json();
 			if (gameData.success) {
-				handleGameStart(gameData.game_state);
 				return true;
 			} else {
 				error = gameData.message || "Failed to start game";
@@ -149,6 +195,13 @@
 			console.log('Game started notification:', data);
 			if (data.success && data.game_state) {
 				handleGameStart(data.game_state);
+			}
+		});
+
+		socket.on('game_updated', (data) => {
+			console.log('Game updated notification:', data);
+			if (data.success && data.game_state) {
+				handleGameUpdate(data.game_state);
 			}
 		});
 

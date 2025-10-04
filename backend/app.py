@@ -7,8 +7,10 @@ from typing import Dict, List, Optional
 import json
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for frontend communication
 socketio = SocketIO(app, cors_allowed_origins="*")  # Enable WebSocket support with CORS
+
+# Enable CORS for all routes
+from flask_cors import cross_origin
 
 # Global game state management
 waiting_players: List[Dict[str, str]] = []  # List of waiting players with their IDs and names
@@ -69,6 +71,7 @@ def hello_world():
     return "<p>Rummy Game API - Welcome!</p>"
 
 @app.route("/join", methods=["POST"])
+@cross_origin()
 def join_game():
     """
     Join the waiting room for a game.
@@ -131,6 +134,7 @@ def join_game():
         }), 500
 
 @app.route("/start-game", methods=["POST"])
+@cross_origin()
 def start_game():
     """
     Start a new game with the specified players.
@@ -148,6 +152,7 @@ def start_game():
         "message": "Success message or error"
     }
     """
+    print("Got here")
     try:
         data = request.get_json()
         if not data or 'player_names' not in data:
@@ -174,31 +179,35 @@ def start_game():
         
         # Create the game
         game_id = generate_game_id()
-        game = RummyGame(len(player_names_list), player_names_list)
-        active_games[game_id] = game
-        
-        # Assign players to the game
+        player_ids = []
         for player_name in player_names_list:
             # Find the player ID for this name
             for player in waiting_players:
                 if player['name'] == player_name:
                     player_games[player['id']] = game_id
+                    player_ids.append(player['id'])
                     break
+        print(f"Player names: {player_names_list}, player_ids: {player_ids}")
+
+        game = RummyGame(len(player_names_list), player_names_list, player_ids)
+        print("Was able to construct the game")
+
+        active_games[game_id] = game
+
+        print("Got here, too")
         
         # Remove players from waiting list
         waiting_players[:] = [p for p in waiting_players if p['name'] not in player_names_list]
-        
-        # Get initial game state
-        game_state = get_game_state(game_id)
         
         # Notify all players in the game via WebSocket
         for player_name in player_names_list:
             # Find the player ID for this name from the original waiting list
             for player_id, name in player_names.items():
                 if name == player_name and player_id in player_connections:
+                    game_state = get_game_for_player(game_id, player_id)
+                    print(game_state)
                     socketio.emit('game_started', {
                         'success': True,
-                        'game_id': game_id,
                         'game_state': game_state,
                         'message': f"Game started with players: {', '.join(player_names_list)}"
                     }, room=player_connections[player_id])
@@ -206,8 +215,6 @@ def start_game():
         
         return jsonify({
             "success": True,
-            "game_id": game_id,
-            "game_state": game_state,
             "message": f"Game started with players: {', '.join(player_names_list)}"
         })
         
@@ -217,61 +224,88 @@ def start_game():
             "message": f"Error starting game: {str(e)}"
         }), 500
 
-def get_game_state(game_id: str) -> Dict:
-    """Helper function to get comprehensive game state."""
-    game = active_games[game_id]
+# def get_game_state(game_id: str) -> Dict:
+#     """Helper function to get comprehensive game state."""
+#     game = active_games[game_id]
     
-    # Get all players' information
-    players_info = []
-    for player_id in game.player_ids:
-        hand = game.get_player_hand(player_id)
-        melds = game.get_player_melds(player_id)
-        score = game.get_player_score(player_id)
+#     # Get all players' information
+#     players_info = []
+#     for player_id in game.player_ids:
+#         hand = game.get_player_hand(player_id)
+#         melds = game.get_player_melds(player_id)
+#         score = game.get_player_score(player_id)
         
-        players_info.append({
-            "id": player_id,
-            "name": game.get_player_name(player_id),
-            "hand_size": len(hand),
-            "hand": [{"suit": card.suit.value, "rank": card.rank.name} for card in hand],
-            "melds": [{"cards": [{"suit": card.suit.value, "rank": card.rank.name} for card in meld.cards], "type": meld.meld_type} for meld in melds],
-            "score": score
-        })
+#         players_info.append({
+#             "id": player_id,
+#             "name": game.get_player_name(player_id),
+#             "hand_size": len(hand),
+#             "hand": [{"suit": card.suit.value, "rank": card.rank.name} for card in hand],
+#             "melds": [{"cards": [{"suit": card.suit.value, "rank": card.rank.name} for card in meld.cards], "type": meld.meld_type} for meld in melds],
+#             "score": score
+#         })
     
+#     return {
+#         "game_id": game_id,
+#         "num_players": game.num_players,
+#         "current_player": game.current_player,
+#         "current_player_name": game.get_player_name(game.current_player),
+#         "stack_size": game.get_stack_size(),
+#         "discard_pile": [{"suit": card.suit.value, "rank": card.rank.name} for card in game.get_discard_pile()],
+#         "top_discard": {"suit": game.get_top_discard().suit.value, "rank": game.get_top_discard().rank.name} if game.get_top_discard() else None,
+#         "game_over": game.is_game_over(),
+#         "winner": game.get_winner(),
+#         "winner_name": game.get_player_name(game.winner) if game.winner is not None else None,
+#         "players": players_info
+#     }
+
+def get_game_for_player(game_id: str, player_id: str) -> Dict:
+    """Helper function to get the game state for a specific player."""
+    game = active_games[game_id]
     return {
-        "game_id": game_id,
-        "num_players": game.num_players,
-        "current_player": game.current_player,
-        "current_player_name": game.get_player_name(game.current_player),
-        "stack_size": game.get_stack_size(),
-        "discard_pile": [{"suit": card.suit.value, "rank": card.rank.name} for card in game.get_discard_pile()],
-        "top_discard": {"suit": game.get_top_discard().suit.value, "rank": game.get_top_discard().rank.name} if game.get_top_discard() else None,
-        "game_over": game.is_game_over(),
-        "winner": game.get_winner(),
-        "winner_name": game.get_player_name(game.winner) if game.winner is not None else None,
-        "players": players_info
+        "gameID": game_id,
+        "playerNames": game.player_names,
+        "hand": [{"suit": card.suit.value, "rank": card.rank.value} for card in game.players_hands[player_id]],
+        "handCts": [len(game.players_hands[i]) for i in game.player_ids],
+        "melds": [[[{"suit": card.suit.value, "rank": card.rank.value} for card in meld.cards] for meld in p] for p in [game.players_melds[i] for i in game.player_ids]],
+        "discards": [{"suit": card.suit.value, "rank": card.rank.value} for card in game.discard_pile],
+        "stack": len(game.stack), 
+        "activePlayerName": game.player_names[game.current_player], 
+        "playerCount": game.num_players,
+        "gameOver": game.is_game_over(),
+        "eventLog": game.event_log
     }
 
-@app.route("/game/<game_id>/state", methods=["GET"])
-def get_game_state_endpoint(game_id: str):
-    """Get the current state of a game."""
-    try:
-        if game_id not in active_games:
-            return jsonify({
-                "success": False,
-                "message": "Game not found"
-            }), 404
+# @app.route("/game/<game_id>/player/<player_id>/state", methods=["GET"])
+# def get_game_for_player_endpoint(game_id: str, player_id: str):
+#     """Get the game state for a specific player."""
+#     if game_id not in active_games:
+#         return jsonify({"success": False, "message": "Game not found"}), 404
+#     return jsonify({
+#         "success": True,
+#         "game_state": get_game_for_player(game_id, player_id)
+#     })
+
+# @app.route("/game/<game_id>/state", methods=["GET"])
+# def get_game_state_endpoint(game_id: str):
+#     """Get the current state of a game."""
+#     try:
+#         if game_id not in active_games:
+#             return jsonify({
+#                 "success": False,
+#                 "message": "Game not found"
+#             }), 404
         
-        game_state = get_game_state(game_id)
-        return jsonify({
-            "success": True,
-            "game_state": game_state
-        })
+#         game_state = get_game_state(game_id)
+#         return jsonify({
+#             "success": True,
+#             "game_state": game_state
+#         })
         
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "message": f"Error getting game state: {str(e)}"
-        }), 500
+#     except Exception as e:
+#         return jsonify({
+#             "success": False,
+#             "message": f"Error getting game state: {str(e)}"
+#         }), 500
 
 @app.route("/waiting-players", methods=["GET"])
 def get_waiting_players():
@@ -281,152 +315,38 @@ def get_waiting_players():
         "waiting_players": waiting_players
     })
 
-@app.route("/player/<player_id>/game", methods=["GET"])
-def get_player_game(player_id: str):
-    """Get the game ID for a specific player."""
-    if player_id not in player_games:
-        return jsonify({"success": False, "message": "Player not in any game"}), 404
-    
-    game_id = player_games[player_id]
-    return jsonify({
-        "success": True,
-        "game_id": game_id,
-        "game_state": get_game_state(game_id)
-    })
-
-@app.route("/game/<game_id>/draw-stack", methods=["POST"])
-def draw_from_stack(game_id: str):
-    """Draw a card from the stack."""
+@app.route("/game", methods=["POST"])
+def game_move():
+    """Handle a game move."""
     try:
-        if game_id not in active_games:
-            return jsonify({"success": False, "message": "Game not found"}), 404
-        
         data = request.get_json()
-        if not data or 'player_id' not in data:
-            return jsonify({"success": False, "message": "player_id is required"}), 400
-        
-        player_id = int(data['player_id'])
+        if not data or 'game_id' not in data or 'player_id' not in data or 'move' not in data:
+            return jsonify({"success": False, "message": "game_id, player_id, and move are required"}), 400
         game = active_games[game_id]
-        
-        if player_id != game.get_current_player():
-            return jsonify({"success": False, "message": "Not your turn"}), 400
-        
-        drawn_card = game.draw_from_stack(player_id)
-        if drawn_card is None:
-            return jsonify({"success": False, "message": "Stack is empty"}), 400
-        
-        return jsonify({
-            "success": True,
-            "drawn_card": {"suit": drawn_card.suit.value, "rank": drawn_card.rank.name},
-            "game_state": get_game_state(game_id)
-        })
-        
+        if game is None:
+            return jsonify({"success": False, "message": "Game not found"}), 400
+        game_id = data['game_id']
+        player_id = data['player_id']
+        move = data['move']
+        if move == "draw-stack":
+            game.draw_from_stack(player_id)
+        elif move == "draw-discard":
+            card = data['card']
+            game.draw_from_discard(player_id, card)
+        elif move == "play-meld":
+            cards = data['cards']
+            meld_type = data['meld_type']
+            game.play_meld(player_id, cards, meld_type)
+        elif move == "discard":
+            card = data['card']
+            game.discard_card(player_id, card)
+        for player_id in game.player_ids:
+            socketio.emit('game_updated', {
+                'game_state': get_game_for_player(game_id, player_id)
+            }, room=player_connections[player_id])
+        return jsonify({"success": True, "message": "Game move handled successfully"}), 200
     except Exception as e:
-        return jsonify({"success": False, "message": f"Error drawing from stack: {str(e)}"}), 500
-
-@app.route("/game/<game_id>/draw-discard", methods=["POST"])
-def draw_from_discard(game_id: str):
-    """Draw a specific card from the discard pile."""
-    try:
-        if game_id not in active_games:
-            return jsonify({"success": False, "message": "Game not found"}), 404
-        
-        data = request.get_json()
-        if not data or 'player_id' not in data or 'card' not in data:
-            return jsonify({"success": False, "message": "player_id and card are required"}), 400
-        
-        player_id = int(data['player_id'])
-        card_data = data['card']
-        
-        if player_id != active_games[game_id].get_current_player():
-            return jsonify({"success": False, "message": "Not your turn"}), 400
-        
-        # Create card object
-        card = Card(Suit(card_data['suit']), Rank[card_data['rank']])
-        game = active_games[game_id]
-        
-        success = game.draw_from_discard(player_id, card)
-        if not success:
-            return jsonify({"success": False, "message": "Card not found in discard pile"}), 400
-        
-        return jsonify({
-            "success": True,
-            "game_state": get_game_state(game_id)
-        })
-        
-    except Exception as e:
-        return jsonify({"success": False, "message": f"Error drawing from discard: {str(e)}"}), 500
-
-@app.route("/game/<game_id>/play-meld", methods=["POST"])
-def play_meld(game_id: str):
-    """Play a meld (set or run)."""
-    try:
-        if game_id not in active_games:
-            return jsonify({"success": False, "message": "Game not found"}), 404
-        
-        data = request.get_json()
-        if not data or 'player_id' not in data or 'cards' not in data or 'meld_type' not in data:
-            return jsonify({"success": False, "message": "player_id, cards, and meld_type are required"}), 400
-        
-        player_id = int(data['player_id'])
-        cards_data = data['cards']
-        meld_type = data['meld_type']
-        
-        if player_id != active_games[game_id].get_current_player():
-            return jsonify({"success": False, "message": "Not your turn"}), 400
-        
-        # Create card objects
-        cards = []
-        for card_data in cards_data:
-            card = Card(Suit(card_data['suit']), Rank[card_data['rank']])
-            cards.append(card)
-        
-        game = active_games[game_id]
-        success = game.play_meld(player_id, cards, meld_type)
-        
-        if not success:
-            return jsonify({"success": False, "message": "Invalid meld or cards not in hand"}), 400
-        
-        return jsonify({
-            "success": True,
-            "game_state": get_game_state(game_id)
-        })
-        
-    except Exception as e:
-        return jsonify({"success": False, "message": f"Error playing meld: {str(e)}"}), 500
-
-@app.route("/game/<game_id>/discard", methods=["POST"])
-def discard_card(game_id: str):
-    """Discard a card."""
-    try:
-        if game_id not in active_games:
-            return jsonify({"success": False, "message": "Game not found"}), 404
-        
-        data = request.get_json()
-        if not data or 'player_id' not in data or 'card' not in data:
-            return jsonify({"success": False, "message": "player_id and card are required"}), 400
-        
-        player_id = int(data['player_id'])
-        card_data = data['card']
-        
-        if player_id != active_games[game_id].get_current_player():
-            return jsonify({"success": False, "message": "Not your turn"}), 400
-        
-        # Create card object
-        card = Card(Suit(card_data['suit']), Rank[card_data['rank']])
-        game = active_games[game_id]
-        
-        success = game.discard_card(player_id, card)
-        if not success:
-            return jsonify({"success": False, "message": "Card not found in hand"}), 400
-        
-        return jsonify({
-            "success": True,
-            "game_state": get_game_state(game_id)
-        })
-        
-    except Exception as e:
-        return jsonify({"success": False, "message": f"Error discarding card: {str(e)}"}), 500
+        return jsonify({"success": False, "message": f"Error handling game move: {str(e)}"}), 500
 
 if __name__ == "__main__":
     socketio.run(app, debug=True, host="0.0.0.0", port=5000)

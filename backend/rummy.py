@@ -6,27 +6,27 @@ from enum import Enum
 
 class Suit(Enum):
     """Card suits in a standard deck."""
-    HEARTS = "Hearts"
-    DIAMONDS = "Diamonds"
-    CLUBS = "Clubs"
-    SPADES = "Spades"
+    HEARTS = "hearts"
+    DIAMONDS = "diamonds"
+    CLUBS = "clubs"
+    SPADES = "spades"
 
 
 class Rank(Enum):
     """Card ranks in a standard deck."""
-    ACE = 1
-    TWO = 2
-    THREE = 3
-    FOUR = 4
-    FIVE = 5
-    SIX = 6
-    SEVEN = 7
-    EIGHT = 8
-    NINE = 9
-    TEN = 10
-    JACK = 11
-    QUEEN = 12
-    KING = 13
+    ACE = 'A'
+    TWO = '2'
+    THREE = '3'
+    FOUR = '4'
+    FIVE = '5'
+    SIX = '6'
+    SEVEN = '7'
+    EIGHT = '8'
+    NINE = '9'
+    TEN = '10'
+    JACK = 'J'
+    QUEEN = 'Q'
+    KING = 'K'
 
 
 @dataclass
@@ -83,7 +83,7 @@ class Meld:
 class RummyGame:
     """A complete Rummy game implementation."""
     
-    def __init__(self, num_players: int, player_names: Optional[List[str]] = None):
+    def __init__(self, num_players: int, player_names: List[str], player_ids: List[str]):
         """
         Initialize a new Rummy game.
         
@@ -95,28 +95,32 @@ class RummyGame:
         Raises:
             ValueError: If num_players is not between 2 and 4
         """
+        print("Constructing")
         if not 2 <= num_players <= 4:
             raise ValueError("Number of players must be between 2 and 4")
         
         self.num_players = num_players
         self.player_names = player_names or [f"Player {i+1}" for i in range(num_players)]
-        self.player_ids = list(range(num_players))
+        self.player_ids = player_ids
         
-        if len(self.player_names) != num_players:
-            raise ValueError("Number of player names must match number of players")
+        if len(self.player_names) != num_players or len(self.player_ids) != num_players:
+            raise ValueError("Number of player names and IDs must match number of players")
+
         
         # Initialize game state
-        self.players_hands: Dict[int, List[Card]] = {}
-        self.players_melds: Dict[int, List[Meld]] = {}
+        self.players_hands: Dict[str, List[Card]] = {}
+        self.players_melds: Dict[str, List[Meld]] = {}
         self.stack: List[Card] = []
         self.discard_pile: List[Card] = []
         self.current_player = 0
         self.game_over = False
         self.winner = None
-        self.scores: Dict[int, int] = {}
+        self.scores: Dict[str, int] = {}
+        self.event_log: List[str] = []
         
         # Create and shuffle deck
         self._create_deck()
+
         self._deal_cards()
     
     def _create_deck(self) -> None:
@@ -140,7 +144,7 @@ class RummyGame:
                 if self.stack:
                     card = self.stack.pop()
                     self.players_hands[player_id].append(card)
-        
+
         # Put one card on the discard pile to start
         if self.stack:
             self.discard_pile.append(self.stack.pop())
@@ -166,6 +170,7 @@ class RummyGame:
         
         card = self.stack.pop()
         self.players_hands[player_id].append(card)
+        self.event_log.append(f"{self.player_names[player_id]} drew a card from the discard pile")
         return card
     
     def draw_from_discard(self, player_id: int, card: Card) -> bool:
@@ -193,6 +198,7 @@ class RummyGame:
             card_index = self.discard_pile.index(card)
             drawn_card = self.discard_pile.pop(card_index)
             self.players_hands[player_id].append(drawn_card)
+            self.event_log.append(f"{self.player_names[player_id]} drew a card from the discard pile")
             return True
         except ValueError:
             return False
@@ -234,7 +240,7 @@ class RummyGame:
             player_hand.remove(card)
         
         self.players_melds[player_id].append(meld)
-        
+        self.event_log.append(f"{self.player_names[player_id]} played a {meld_type} meld")
         # Check if player's hand is empty (game end condition)
         if len(player_hand) == 0:
             self._end_game()
@@ -266,7 +272,7 @@ class RummyGame:
         # Remove card from player's hand and add to discard pile
         player_hand.remove(card)
         self.discard_pile.append(card)
-        
+        self.event_log.append(f"{self.player_names[player_id]} discarded a card")
         # Check if player's hand is empty (game end condition)
         if len(player_hand) == 0:
             self._end_game()
@@ -412,7 +418,7 @@ class RummyGame:
     
     def get_current_player(self) -> int:
         """Get the ID of the current player."""
-        return self.current_player
+        return self.player_ids[self.current_player]
     
     def is_game_over(self) -> bool:
         """Check if the game is over."""
