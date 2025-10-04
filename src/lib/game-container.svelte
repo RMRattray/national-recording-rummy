@@ -2,12 +2,68 @@
     import { RummyGame, Card, Suit, Value } from '$lib';
     import Playerbox from '$lib/playerbox.svelte';
     import CardBox from '$lib/cardbox.svelte';
-    let { currentGame, playerName, socket }: { currentGame: RummyGame, playerName: string, socket: any } = $props();
+    let { 
+        currentGame, 
+        playerName, 
+        socket, 
+        drawFromStack, 
+        drawFromDiscard, 
+        playMeld, 
+        discardCard 
+    }: { 
+        currentGame: RummyGame, 
+        playerName: string, 
+        socket: any,
+        drawFromStack: () => Promise<void>,
+        drawFromDiscard: (card: Card) => Promise<void>,
+        playMeld: (cards: Card[]) => Promise<void>,
+        discardCard: (card: Card) => Promise<void>
+    } = $props();
+    
     let myPlayerIndex = $derived(currentGame.playerNames.indexOf(playerName));
+    let selectedCards = $state<Set<Card>>(new Set());
  
 	let leftPlayerIndex = $derived((myPlayerIndex + 1) % currentGame.playerCount);
 	let oppoPlayerIndex = $derived(currentGame.playerCount == 2 ? 1 - myPlayerIndex : (myPlayerIndex + 2) % currentGame.playerCount);
 	let rightPlayerIndex = $derived((myPlayerIndex + 3) % currentGame.playerCount);
+
+    // Check if it's the current player's turn
+    let isMyTurn = $derived(currentGame.activePlayerName === playerName);
+
+    function handleCardClick(card: Card, location: 'discard' | 'stack' | 'hand', event: MouseEvent) {
+        if (!isMyTurn) return;
+
+        if (location === 'discard') {
+            drawFromDiscard(card);
+        } else if (location === 'stack') {
+            drawFromStack();
+        } else if (location === 'hand') {
+            if (event.shiftKey) {
+                // Toggle card selection
+                const newSelectedCards = new Set(selectedCards);
+                if (newSelectedCards.has(card)) {
+                    newSelectedCards.delete(card);
+                } else {
+                    newSelectedCards.add(card);
+                }
+                selectedCards = newSelectedCards;
+            } else {
+                // Discard the card
+                discardCard(card);
+            }
+        }
+    }
+
+    function handlePlayMeld() {
+        if (selectedCards.size > 0) {
+            playMeld(Array.from(selectedCards));
+            selectedCards = new Set(); // Clear selection after playing
+        }
+    }
+
+    function isCardSelected(card: Card): boolean {
+        return selectedCards.has(card);
+    }
 
 </script>
 
@@ -24,14 +80,53 @@
 				<h3>Discard Pile</h3>
 				<div class="discards">
                     {#if currentGame.stack > 0}
-                    <CardBox card={new Card(Suit.SPADES, Value.ACE)} revealed={false}/>
+                    <button 
+                        class="clickable-card" 
+                        class:disabled={!isMyTurn}
+                        onclick={(e) => handleCardClick(new Card(Suit.SPADES, Value.ACE), 'stack', e)}
+                        type="button"
+                        disabled={!isMyTurn}
+                    >
+                        <CardBox card={new Card(Suit.SPADES, Value.ACE)} revealed={false}/>
+                    </button>
                     {/if}
 					{#each currentGame.discards as card}
-						<CardBox card={card} revealed={true} />
+                        <button 
+                            class="clickable-card" 
+                            class:disabled={!isMyTurn}
+                            onclick={(e) => handleCardClick(card, 'discard', e)}
+                            type="button"
+                            disabled={!isMyTurn}
+                        >
+                            <CardBox card={card} revealed={true} />
+                        </button>
 					{/each}
 				</div>
 			</div>
-            <Playerbox game={currentGame} playerIndex={myPlayerIndex} vertical={false} lefttop={false} user={true}/>
+            <Playerbox 
+                game={currentGame} 
+                playerIndex={myPlayerIndex} 
+                vertical={false} 
+                lefttop={false} 
+                user={true}
+                {handleCardClick}
+                {isCardSelected}
+                {isMyTurn}
+            />
+            
+            <!-- Play Meld Button -->
+            {#if isMyTurn && selectedCards.size > 0}
+                <div class="play-meld-section">
+                    <button 
+                        class="play-meld-button" 
+                        onclick={handlePlayMeld}
+                        disabled={selectedCards.size === 0}
+                        type="button"
+                    >
+                        Play Meld ({selectedCards.size} cards)
+                    </button>
+                </div>
+            {/if}
         </div>
         {#if currentGame.playerCount > 3}
         <Playerbox game={currentGame} playerIndex={rightPlayerIndex} vertical={true} lefttop={true} user={false}/> 
@@ -162,6 +257,53 @@
 
 	.event-log::-webkit-scrollbar-thumb:hover {
 		background: #7FCF7F;
+	}
+
+	/* Clickable card styles */
+	.clickable-card {
+		cursor: pointer;
+		transition: transform 0.2s ease;
+	}
+
+	.clickable-card:hover:not(.disabled) {
+		transform: translateY(-2px);
+	}
+
+	.clickable-card.disabled {
+		cursor: not-allowed;
+		opacity: 0.5;
+	}
+
+	/* Play meld button styles */
+	.play-meld-section {
+		display: flex;
+		justify-content: center;
+		margin-top: 1rem;
+	}
+
+	.play-meld-button {
+		background: linear-gradient(135deg, #2d7a5f, #1e5f3f);
+		color: white;
+		border: none;
+		padding: 0.75rem 1.5rem;
+		border-radius: 6px;
+		font-size: 0.9rem;
+		font-weight: bold;
+		cursor: pointer;
+		transition: all 0.3s ease;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+	}
+
+	.play-meld-button:hover:not(:disabled) {
+		background: linear-gradient(135deg, #3a8b6f, #2d7a5f);
+		transform: translateY(-1px);
+		box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+	}
+
+	.play-meld-button:disabled {
+		background: #666;
+		cursor: not-allowed;
+		opacity: 0.6;
 	}
 
 	/* Responsive adjustments for very small screens */

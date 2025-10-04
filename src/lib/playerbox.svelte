@@ -2,7 +2,25 @@
 	import { RummyGame, Card, Suit, Value } from '$lib';
 	import CardBox from '$lib/cardbox.svelte';
 
-    let { game, playerIndex, vertical, lefttop, user }: { game: RummyGame, playerIndex: number, vertical: boolean, lefttop: boolean, user: boolean } = $props();
+    let { 
+        game, 
+        playerIndex, 
+        vertical, 
+        lefttop, 
+        user, 
+        handleCardClick, 
+        isCardSelected, 
+        isMyTurn 
+    }: { 
+        game: RummyGame, 
+        playerIndex: number, 
+        vertical: boolean, 
+        lefttop: boolean, 
+        user: boolean,
+        handleCardClick?: (card: Card, location: 'discard' | 'stack' | 'hand', event: MouseEvent) => void,
+        isCardSelected?: (card: Card) => boolean,
+        isMyTurn?: boolean
+    } = $props();
 
 	// Get player name
 	let playerName = $derived(game.playerNames[playerIndex] || 'Unknown Player');
@@ -48,7 +66,24 @@
 			{#if user}
 				<!-- Show actual hand for current user -->
 				{#each playerHand as card}
-					<CardBox card={card} revealed={true} />
+					{#if handleCardClick && isMyTurn}
+						<button 
+							class="hand-card" 
+							class:selected={isCardSelected && isCardSelected(card)}
+							class:clickable={true}
+							onclick={(e) => handleCardClick(card, 'hand', e)}
+							type="button"
+						>
+							<CardBox card={card} revealed={true} />
+						</button>
+					{:else}
+						<div 
+							class="hand-card" 
+							class:selected={isCardSelected && isCardSelected(card)}
+						>
+							<CardBox card={card} revealed={true} />
+						</div>
+					{/if}
 				{/each}
 			{:else}
 				<!-- Show hidden cards for other players -->
@@ -136,6 +171,29 @@
 		gap: 0.1rem;
 		flex-wrap: wrap;
 		justify-content: center;
+	}
+
+	.hand-card {
+		transition: transform 0.2s ease;
+	}
+
+	.hand-card.clickable {
+		cursor: pointer;
+	}
+
+	.hand-card.clickable:hover {
+		transform: translateY(-3px);
+	}
+
+	.hand-card.selected {
+		transform: translateY(-5px);
+		z-index: 10;
+		position: relative;
+	}
+
+	.hand-card.selected :global(.card) {
+		box-shadow: 0 4px 8px rgba(255, 215, 0, 0.6);
+		border-color: #FFD700;
 	}
 
 	/* Responsive adjustments */

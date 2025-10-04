@@ -95,7 +95,6 @@ class RummyGame:
         Raises:
             ValueError: If num_players is not between 2 and 4
         """
-        print("Constructing")
         if not 2 <= num_players <= 4:
             raise ValueError("Number of players must be between 2 and 4")
         
@@ -170,7 +169,7 @@ class RummyGame:
         
         card = self.stack.pop()
         self.players_hands[player_id].append(card)
-        self.event_log.append(f"{self.player_names[player_id]} drew a card from the discard pile")
+        self.event_log.append(f"{self.player_names[self.player_ids.index(player_id)]} drew a card from the stack")
         return card
     
     def draw_from_discard(self, player_id: int, card: Card) -> bool:
@@ -196,14 +195,15 @@ class RummyGame:
         # Find the card in the discard pile
         try:
             card_index = self.discard_pile.index(card)
-            drawn_card = self.discard_pile.pop(card_index)
-            self.players_hands[player_id].append(drawn_card)
-            self.event_log.append(f"{self.player_names[player_id]} drew a card from the discard pile")
+            drawn_cards = self.discard_pile[card_index:]
+            self.discard_pile = self.discard_pile[:card_index]
+            self.players_hands[player_id] += drawn_cards
+            self.event_log.append(f"{self.player_names[self.player_ids.index(player_id)]} drew a card from the discard pile")
             return True
         except ValueError:
             return False
     
-    def play_meld(self, player_id: int, cards: List[Card], meld_type: str) -> bool:
+    def play_meld(self, player_id: int, cards: List[Card]) -> bool:
         """
         Play a meld (set or run) of cards.
         
@@ -221,9 +221,6 @@ class RummyGame:
         if player_id not in self.player_ids:
             raise ValueError(f"Invalid player ID: {player_id}")
         
-        if meld_type not in ["set", "run"]:
-            raise ValueError("Meld type must be 'set' or 'run'")
-        
         # Check if player has all the cards
         player_hand = self.players_hands[player_id]
         for card in cards:
@@ -240,7 +237,7 @@ class RummyGame:
             player_hand.remove(card)
         
         self.players_melds[player_id].append(meld)
-        self.event_log.append(f"{self.player_names[player_id]} played a {meld_type} meld")
+        self.event_log.append(f"{self.player_names[self.player_ids.index(player_id)]} played a {meld_type} meld")
         # Check if player's hand is empty (game end condition)
         if len(player_hand) == 0:
             self._end_game()
@@ -272,7 +269,7 @@ class RummyGame:
         # Remove card from player's hand and add to discard pile
         player_hand.remove(card)
         self.discard_pile.append(card)
-        self.event_log.append(f"{self.player_names[player_id]} discarded a card")
+        self.event_log.append(f"{self.player_names[self.player_ids.index(player_id)]} discarded the {card.rank} of {card.suit}")
         # Check if player's hand is empty (game end condition)
         if len(player_hand) == 0:
             self._end_game()

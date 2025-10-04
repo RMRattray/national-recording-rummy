@@ -309,32 +309,34 @@ def get_waiting_players():
     })
 
 @app.route("/game", methods=["POST"])
+@cross_origin()
 def game_move():
     """Handle a game move."""
     try:
         data = request.get_json()
         if not data or 'game_id' not in data or 'player_id' not in data or 'move' not in data:
             return jsonify({"success": False, "message": "game_id, player_id, and move are required"}), 400
+        game_id = data['game_id']
         game = active_games[game_id]
         if game is None:
             return jsonify({"success": False, "message": "Game not found"}), 400
-        game_id = data['game_id']
         player_id = data['player_id']
         move = data['move']
         if move == "draw-stack":
             game.draw_from_stack(player_id)
         elif move == "draw-discard":
-            card = data['card']
+            card = Card(suit=Suit(data['data']['card']['suit']), rank=Rank(data['data']['card']['value']))
             game.draw_from_discard(player_id, card)
         elif move == "play-meld":
-            cards = data['cards']
-            meld_type = data['meld_type']
-            game.play_meld(player_id, cards, meld_type)
+            cards = [Card(suit=Suit(card['suit']), rank=Rank(card['value'])) for card in data['data']['cards']]
+            game.play_meld(player_id, cards)
         elif move == "discard":
-            card = data['card']
+            card = Card(suit=Suit(data['data']['card']['suit']), rank=Rank(data['data']['card']['value']))
             game.discard_card(player_id, card)
         for player_id in game.player_ids:
+            game_state = get_game_for_player(game_id, player_id)
             socketio.emit('game_updated', {
+                'success': True,
                 'game_state': get_game_for_player(game_id, player_id)
             }, room=player_connections[player_id])
         return jsonify({"success": True, "message": "Game move handled successfully"}), 200

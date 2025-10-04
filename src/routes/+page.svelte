@@ -22,6 +22,8 @@
 	// Derived values
 	let cantStartGame = $derived(isLoading || selectedPlayers.size < 2 || selectedPlayers.size > 4);
 
+	$effect(() => console.log(currentGame));
+
 	function convertCardData(cardData: any): Card {
 		return new Card(cardData.suit, cardData.value
 		);
@@ -56,6 +58,7 @@
 	}
 
 	function handleGameUpdate(gameData: any) {
+		console.log(gameData);
 		currentGame = new RummyGame(
 			gameData.gameID || 'unknown',
 			gameData.playerNames || [],
@@ -93,8 +96,8 @@
 		await makeGameMove('draw-discard', { card: card });
 	}
 
-	async function playMeld(cards: any, meldType: string) {
-		await makeGameMove('play-meld', { cards: cards, meld_type: meldType });
+	async function playMeld(cards: any) {
+		await makeGameMove('play-meld', { cards: cards });
 	}
 
 	async function discardCard(card: any) {
@@ -130,7 +133,6 @@
 				players = data.waiting_players?.map((p: any) => p.name) || [];
 				playerToken = data.player_id || '';
 				playerName = playerNameInput.trim();
-				console.log(playerName);
 				
 				// Auto-select current player when they're added to the list
 				if (playerName && players.includes(playerName)) {
@@ -218,7 +220,11 @@
 		socket.on('game_updated', (data) => {
 			console.log('Game updated notification:', data);
 			if (data.success && data.game_state) {
+				console.log("I had to handle it");
 				handleGameUpdate(data.game_state);
+			}
+			else {
+				console.log("No success??");
 			}
 		});
 
@@ -259,7 +265,15 @@
 </script>
 
 {#if currentGame}
-	<GameContainer currentGame={currentGame} playerName={playerName} socket={socket} />
+	<GameContainer 
+		currentGame={currentGame} 
+		playerName={playerName} 
+		socket={socket}
+		{drawFromStack}
+		{drawFromDiscard}
+		{playMeld}
+		{discardCard}
+	/>
 {:else}
 	<WelcomeScreen 
 		{joinGame}
