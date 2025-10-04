@@ -5,9 +5,10 @@
     let { currentGame, playerName, socket }: { currentGame: RummyGame, playerName: string, socket: any } = $props();
     let myPlayerIndex = $derived(currentGame.playerNames.indexOf(playerName));
  
-	let leftPlayerIndex = $derived((myPlayerIndex + 1) % currentGame.playerCount)
-	let oppoPlayerIndex = $derived(currentGame.playerCount == 2 ? 1 - myPlayerIndex : (myPlayerIndex + 2) % currentGame.playerCount)
-	let rightPlayerIndex = $derived((myPlayerIndex + 3) % currentGame.playerCount)
+	let leftPlayerIndex = $derived((myPlayerIndex + 1) % currentGame.playerCount);
+	let oppoPlayerIndex = $derived(currentGame.playerCount == 2 ? 1 - myPlayerIndex : (myPlayerIndex + 2) % currentGame.playerCount);
+	let rightPlayerIndex = $derived((myPlayerIndex + 3) % currentGame.playerCount);
+
 </script>
 
 
@@ -27,7 +28,6 @@
                     {/if}
 					{#each currentGame.discards as card}
 						<CardBox card={card} revealed={true} />
-						
 					{/each}
 				</div>
 			</div>

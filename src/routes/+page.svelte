@@ -23,9 +23,7 @@
 	let cantStartGame = $derived(isLoading || selectedPlayers.size < 2 || selectedPlayers.size > 4);
 
 	function convertCardData(cardData: any): Card {
-		return new Card(
-			Suit[cardData.suit.toUpperCase() as keyof typeof Suit],
-			Value[cardData.value as keyof typeof Value]
+		return new Card(cardData.suit, cardData.value
 		);
 	}
 
