@@ -112,6 +112,7 @@ class RummyGame:
         self.stack: List[Card] = []
         self.discard_pile: List[Card] = []
         self.current_player = 0
+        self.current_player_has_drawn = False
         self.game_over = False
         self.winner = None
         self.scores: Dict[str, int] = {}
@@ -170,6 +171,7 @@ class RummyGame:
         card = self.stack.pop()
         self.players_hands[player_id].append(card)
         self.event_log.append(f"{self.player_names[self.player_ids.index(player_id)]} drew a card from the stack")
+        self.current_player_has_drawn = True
         return card
     
     def draw_from_discard(self, player_id: int, card: Card) -> bool:
@@ -199,6 +201,7 @@ class RummyGame:
             self.discard_pile = self.discard_pile[:card_index]
             self.players_hands[player_id] += drawn_cards
             self.event_log.append(f"{self.player_names[self.player_ids.index(player_id)]} drew a card from the discard pile")
+            self.current_player_has_drawn = True
             return True
         except ValueError:
             return False
@@ -265,6 +268,10 @@ class RummyGame:
         player_hand = self.players_hands[player_id]
         if card not in player_hand:
             return False
+        
+        if not self.current_player_has_drawn:
+            self.event_log.append(f"{self.player_names[self.player_ids.index(player_id)]} attempted to discard before drawing a card")
+            return True
         
         # Remove card from player's hand and add to discard pile
         player_hand.remove(card)
@@ -411,6 +418,7 @@ class RummyGame:
     
     def end_turn(self) -> None:
         """End the current player's turn and move to the next player."""
+        self.current_player_has_drawn = False
         self.current_player = (self.current_player + 1) % self.num_players
     
     def get_current_player(self) -> int:
