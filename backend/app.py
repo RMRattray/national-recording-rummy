@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit, disconnect
-from rummy import RummyGame, Card, Suit, Rank
+from rummy import RummyGame, Card, Suit, Rank, RANK_NAMES
 import uuid
 from typing import Dict, List, Optional
 import json
@@ -217,88 +217,22 @@ def start_game():
             "message": f"Error starting game: {str(e)}"
         }), 500
 
-# def get_game_state(game_id: str) -> Dict:
-#     """Helper function to get comprehensive game state."""
-#     game = active_games[game_id]
-    
-#     # Get all players' information
-#     players_info = []
-#     for player_id in game.player_ids:
-#         hand = game.get_player_hand(player_id)
-#         melds = game.get_player_melds(player_id)
-#         score = game.get_player_score(player_id)
-        
-#         players_info.append({
-#             "id": player_id,
-#             "name": game.get_player_name(player_id),
-#             "hand_size": len(hand),
-#             "hand": [{"suit": card.suit.value, "rank": card.rank.name} for card in hand],
-#             "melds": [{"cards": [{"suit": card.suit.value, "rank": card.rank.name} for card in meld.cards], "type": meld.meld_type} for meld in melds],
-#             "score": score
-#         })
-    
-#     return {
-#         "game_id": game_id,
-#         "num_players": game.num_players,
-#         "current_player": game.current_player,
-#         "current_player_name": game.get_player_name(game.current_player),
-#         "stack_size": game.get_stack_size(),
-#         "discard_pile": [{"suit": card.suit.value, "rank": card.rank.name} for card in game.get_discard_pile()],
-#         "top_discard": {"suit": game.get_top_discard().suit.value, "rank": game.get_top_discard().rank.name} if game.get_top_discard() else None,
-#         "game_over": game.is_game_over(),
-#         "winner": game.get_winner(),
-#         "winner_name": game.get_player_name(game.winner) if game.winner is not None else None,
-#         "players": players_info
-#     }
-
 def get_game_for_player(game_id: str, player_id: str) -> Dict:
     """Helper function to get the game state for a specific player."""
     game = active_games[game_id]
     return {
         "gameID": game_id,
         "playerNames": game.player_names,
-        "hand": [{"suit": card.suit.value, "value": card.rank.value} for card in game.players_hands[player_id]],
+        "hand": [{"suit": card.suit.value, "value": RANK_NAMES[card.rank.value]} for card in game.players_hands[player_id]],
         "handCts": [len(game.players_hands[i]) for i in game.player_ids],
-        "melds": [[[{"suit": card.suit.value, "value": card.rank.value} for card in meld.cards] for meld in p] for p in [game.players_melds[i] for i in game.player_ids]],
-        "discards": [{"suit": card.suit.value, "value": card.rank.value} for card in game.discard_pile],
+        "melds": [[[{"suit": card.suit.value, "value": RANK_NAMES[card.rank.value]} for card in meld.cards] for meld in p] for p in [game.players_melds[i] for i in game.player_ids]],
+        "discards": [{"suit": card.suit.value, "value": RANK_NAMES[card.rank.value]} for card in game.discard_pile],
         "stack": len(game.stack), 
         "activePlayerName": game.player_names[game.current_player], 
         "playerCount": game.num_players,
         "gameOver": game.is_game_over(),
         "eventLog": game.event_log
     }
-
-# @app.route("/game/<game_id>/player/<player_id>/state", methods=["GET"])
-# def get_game_for_player_endpoint(game_id: str, player_id: str):
-#     """Get the game state for a specific player."""
-#     if game_id not in active_games:
-#         return jsonify({"success": False, "message": "Game not found"}), 404
-#     return jsonify({
-#         "success": True,
-#         "game_state": get_game_for_player(game_id, player_id)
-#     })
-
-# @app.route("/game/<game_id>/state", methods=["GET"])
-# def get_game_state_endpoint(game_id: str):
-#     """Get the current state of a game."""
-#     try:
-#         if game_id not in active_games:
-#             return jsonify({
-#                 "success": False,
-#                 "message": "Game not found"
-#             }), 404
-        
-#         game_state = get_game_state(game_id)
-#         return jsonify({
-#             "success": True,
-#             "game_state": game_state
-#         })
-        
-#     except Exception as e:
-#         return jsonify({
-#             "success": False,
-#             "message": f"Error getting game state: {str(e)}"
-#         }), 500
 
 @app.route("/waiting-players", methods=["GET"])
 def get_waiting_players():
@@ -325,13 +259,13 @@ def game_move():
         if move == "draw-stack":
             game.draw_from_stack(player_id)
         elif move == "draw-discard":
-            card = Card(suit=Suit(data['data']['card']['suit']), rank=Rank(data['data']['card']['value']))
+            card = Card(suit=Suit(data['data']['card']['suit']), rank=Rank(RANK_NAMES.index(data['data']['card']['value'])))
             game.draw_from_discard(player_id, card)
         elif move == "play-meld":
-            cards = [Card(suit=Suit(card['suit']), rank=Rank(card['value'])) for card in data['data']['cards']]
+            cards = [Card(suit=Suit(card['suit']), rank=Rank(RANK_NAMES.index(card['value']))) for card in data['data']['cards']]
             game.play_meld(player_id, cards)
         elif move == "discard":
-            card = Card(suit=Suit(data['data']['card']['suit']), rank=Rank(data['data']['card']['value']))
+            card = Card(suit=Suit(data['data']['card']['suit']), rank=Rank(RANK_NAMES.index(data['data']['card']['value'])))
             game.discard_card(player_id, card)
         for player_id in game.player_ids:
             game_state = get_game_for_player(game_id, player_id)
