@@ -132,6 +132,8 @@ class RummyGame:
         self.game_over = False
         self.winner = None
         self.scores: Dict[str, int] = {}
+        for pid in player_ids:
+            self.scores[pid] = 0
         self.event_log: List[str] = []
         
         # Create and shuffle deck
@@ -152,7 +154,6 @@ class RummyGame:
         for player_id in self.player_ids:
             self.players_hands[player_id] = []
             self.players_melds[player_id] = []
-            self.scores[player_id] = 0
         
         # Deal 10 cards to each player
         for _ in range(10):
@@ -160,6 +161,8 @@ class RummyGame:
                 if self.stack:
                     card = self.stack.pop()
                     self.players_hands[player_id].append(card)
+        for each in self.players_hands.values():
+            each.sort(key=lambda x: x.rank.value)
 
         # Put one card on the discard pile to start
         self.discard_pile = []
@@ -319,6 +322,7 @@ class RummyGame:
         
         # Remove card from player's hand and add to discard pile
         player_hand.remove(card)
+        player_hand.sort(key=lambda x: x.rank.value)
         self.discard_pile.append(card)
         self.event_log.append(f"{self.player_names[self.player_ids.index(player_id)]} discarded the {card}")
         # Check if player's hand is empty (game end condition)
@@ -471,6 +475,8 @@ class RummyGame:
             self._create_deck()
 
             self._deal_cards()
+
+            self.end_turn()
         
         else:
             # Find the winner (highest score)

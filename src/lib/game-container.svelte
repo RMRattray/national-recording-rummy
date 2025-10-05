@@ -65,6 +65,15 @@
         return selectedCards.has(card);
     }
 
+	let scrollContainer : HTMLDivElement;
+
+	$effect(() => {
+		if (currentGame.eventLog.length > 0) {
+			console.log("This line runs");
+			scrollContainer.scrollTop = scrollContainer.scrollHeight;
+		}
+	})
+
 </script>
 
 
@@ -136,7 +145,7 @@
 	<!-- Event log positioned alongside game-main -->
 	<div class="event-log-section">
 		<h3>Events</h3>
-		<div class="event-log">
+		<div bind:this={scrollContainer} class="event-log">
 			{#each currentGame.eventLog as event}
 				<div class="event-item">{event}</div>
 			{/each}

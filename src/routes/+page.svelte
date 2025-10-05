@@ -220,11 +220,7 @@
 		socket.on('game_updated', (data) => {
 			console.log('Game updated notification:', data);
 			if (data.success && data.game_state) {
-				console.log("I had to handle it");
 				handleGameUpdate(data.game_state);
-			}
-			else {
-				console.log("No success??");
 			}
 		});
 
