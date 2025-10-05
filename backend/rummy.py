@@ -37,7 +37,7 @@ class Card:
     rank: Rank
     
     def __str__(self) -> str:
-        return f"{RANK_NAMES[self.rank.value]} of {self.suit.value}"
+        return f"{self.rank.name.lower()} of {self.suit.value}"
     
     def __eq__(self, other) -> bool:
         if not isinstance(other, Card):
@@ -68,7 +68,7 @@ def forms_solo_meld(cards: List[Card]) -> str:
     
     ranks = sorted([card.rank.value for card in cards])
     for i in range(1, len(ranks)):
-        if (not (ranks[i] == ranks[i - 1] + 1) or (i == 1 and ranks[0] == 1 and ranks[-1] == 13)):
+        if (not ((ranks[i] == ranks[i - 1] + 1) or (i == 1 and ranks[0] == 1 and ranks[-1] == 13))):
             return "" 
     
     return "run"
@@ -162,6 +162,7 @@ class RummyGame:
                     self.players_hands[player_id].append(card)
 
         # Put one card on the discard pile to start
+        self.discard_pile = []
         if self.stack:
             self.discard_pile.append(self.stack.pop())
     
@@ -182,6 +183,10 @@ class RummyGame:
             raise ValueError(f"Invalid player ID: {player_id}")
         
         if not self.stack:
+            return None
+        
+        if self.current_player_has_drawn:
+            self.event_log.append(f"{self.player_names[self.player_ids.index(player_id)]} attempted to draw from the stack after having already drawn")
             return None
         
         card = self.stack.pop()
@@ -209,6 +214,10 @@ class RummyGame:
         
         if not self.discard_pile:
             return False
+        
+        if self.current_player_has_drawn:
+            self.event_log.append(f"{self.player_names[self.player_ids.index(player_id)]} attempted to draw from the discard pile after having already drawn")
+            return None
         
         # Find the card in the discard pile
         try:
@@ -266,7 +275,7 @@ class RummyGame:
                             meld = Meld(cards, "set", m)
         
         if meld is None:
-            self.event_log.append(f"{self.player_names[self.player_ids.index(player_id)]} attempt to play an invalid meld")
+            self.event_log.append(f"{self.player_names[self.player_ids.index(player_id)]} attempted to play an invalid meld")
             return False
         
         # Remove cards from player's hand and add to player's melds
@@ -277,6 +286,7 @@ class RummyGame:
         self.event_log.append(f"{self.player_names[self.player_ids.index(player_id)]} played a {meld.meld_type}")
         # Check if player's hand is empty (game end condition)
         if len(player_hand) == 0:
+            self.event_log.append(f"{self.player_names[self.player_ids.index(player_id)]} is out of cards!")
             self._end_game()
         
         return True
@@ -313,6 +323,7 @@ class RummyGame:
         self.event_log.append(f"{self.player_names[self.player_ids.index(player_id)]} discarded the {card}")
         # Check if player's hand is empty (game end condition)
         if len(player_hand) == 0:
+            self.event_log.append(f"{self.player_names[self.player_ids.index(player_id)]} is out of cards!")
             self._end_game()
         else:
             # End the turn (move to next player)
@@ -444,11 +455,27 @@ class RummyGame:
         self.game_over = True
         
         # Calculate scores for all players
+        over_500 = False
         for player_id in self.player_ids:
-            self.scores[player_id] = self._calculate_player_score(player_id)
+            round_score = self._calculate_player_score(player_id)
+            name = self.player_names[self.player_ids.index(player_id)]
+            self.scores[player_id] += round_score
+            self.event_log.append(f"{name} gets {round_score} points, for a total of {self.scores[player_id]}")
+            if (self.scores[player_id] > 500):
+                over_500 = True
+ 
         
-        # Find the winner (highest score)
-        self.winner = max(self.player_ids, key=lambda pid: self.scores[pid])
+        if (not over_500):
+            self.event_log.append("No one has over 500 points - play continues")
+            # Create and shuffle deck
+            self._create_deck()
+
+            self._deal_cards()
+        
+        else:
+            # Find the winner (highest score)
+            self.winner = self.player_names[self.player_ids.index(max(self.player_ids, key=lambda pid: self.scores[pid]))]
+            self.event_log.append(f"{self.winner} wins!")
     
     def end_turn(self) -> None:
         """End the current player's turn and move to the next player."""
