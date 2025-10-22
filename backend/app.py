@@ -51,6 +51,7 @@ def join_game():
     """
     try:
         data = request.get_json()
+
         if not data or 'name' not in data:
             return jsonify({
                 "success": False,
@@ -79,7 +80,7 @@ def join_game():
             "id": player_id,
             "name": player_name
         })
-        
+
         return jsonify({
             "success": True,
             "player_id": player_id,
@@ -207,7 +208,7 @@ def get_game_state() -> Dict:
         elif (player_id in player_names):
             return jsonify({ "success": True, "waiting_players": waiting_players })
         else:
-            return jsonify({ "success": False, "message": f"Invalid player_id: {player_id}" })
+            return jsonify({ "success": False, "message": f"Invalid player_id: {player_id}", "info": player_names })
     except Exception as e:
         return jsonify({"success": False, "message": f"Aaaauuugh {str(e)}"}), 500
 
