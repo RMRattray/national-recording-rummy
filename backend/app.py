@@ -16,7 +16,7 @@ waiting_players: List[Dict[str, str]] = []  # List of waiting players with their
 active_games: Dict[str, RummyGame] = {}  # Game ID -> RummyGame instance
 player_games: Dict[str, str] = {}  # Player ID -> Game ID
 player_names: Dict[str, str] = {}  # Player ID -> Player Name
-player_connections: Dict[str, str] = {}  # Player ID -> Socket session ID
+# player_connections: Dict[str, str] = {}  # Player ID -> Socket session ID
 
 def generate_player_id() -> str:
     """Generate a unique player ID."""
@@ -153,18 +153,18 @@ def start_game():
         # Remove players from waiting list
         waiting_players[:] = [p for p in waiting_players if p['name'] not in player_names_list]
         
-        # Notify all players in the game via WebSocket
-        for player_name in player_names_list:
-            # Find the player ID for this name from the original waiting list
-            for player_id, name in player_names.items():
-                if name == player_name and player_id in player_connections:
-                    game_state = get_game_for_player(game_id, player_id)
-                    socketio.emit('game_started', {
-                        'success': True,
-                        'game_state': game_state,
-                        'message': f"Game started with players: {', '.join(player_names_list)}"
-                    }, room=player_connections[player_id])
-                    break
+        # # Notify all players in the game via WebSocket
+        # for player_name in player_names_list:
+        #     # Find the player ID for this name from the original waiting list
+        #     for player_id, name in player_names.items():
+        #         if name == player_name and player_id in player_connections:
+        #             game_state = get_game_for_player(game_id, player_id)
+        #             socketio.emit('game_started', {
+        #                 'success': True,
+        #                 'game_state': game_state,
+        #                 'message': f"Game started with players: {', '.join(player_names_list)}"
+        #             }, room=player_connections[player_id])
+        #             break
         
         return jsonify({
             "success": True,
@@ -200,14 +200,14 @@ def get_game_state() -> Dict:
     try:
         data = request.get_json()
         if not "player_id" in data:
-            return jsonify({ "success": False })
+            return jsonify({ "success": False, "message": "no_player_id" })
         player_id = data["player_id"]
         if (player_id in player_games):
             return jsonify({"success": True, "game_state": get_game_for_player(player_games[player_id], player_id)}), 200
         elif (player_id in player_names):
             return jsonify({ "success": True, "waiting_players": waiting_players })
         else:
-            return jsonify({ "success": False })
+            return jsonify({ "success": False, "message": f"Invalid player_id: {player_id}" })
     except Exception as e:
         return jsonify({"success": False, "message": f"Aaaauuugh {str(e)}"}), 500
 
@@ -255,6 +255,3 @@ def game_move():
         return jsonify({"success": True, "game_state": get_game_for_player(game_id, player_id)}), 200
     except Exception as e:
         return jsonify({"success": False, "message": f"Error handling game move: {str(e)}"}), 500
-
-if __name__ == "__main__":
-    socketio.run(app, debug=True, host="0.0.0.0", port=5000)
