@@ -5,6 +5,7 @@
 	import WelcomeScreen from '$lib/WelcomeScreen.svelte';
 	import { io, type Socket } from 'socket.io-client';
 
+	// const API_URL = "https://rummy.nationalrecordingregistry.net";
 	const API_URL = "http://127.0.0.1:5000";
 
 	// Game state
@@ -15,9 +16,6 @@
 	let selectedPlayers = $state<Set<string>>(new Set());
 	let isLoading = $state(false);
 	let error = $state('');
-
-	// WebSocket connection
-	let socket = $state<Socket | null>(null);
 
 	// Derived values
 	let cantStartGame = $derived(isLoading || selectedPlayers.size < 2 || selectedPlayers.size > 4);
@@ -41,22 +39,6 @@
 		);
 	}
 
-	function handleGameStart(gameData: any) {
-		// Convert the API response to a RummyGame object
-		currentGame = new RummyGame(
-			gameData.gameID || 'unknown',
-			gameData.playerNames || [],
-			convertCardArray(gameData.hand || []),
-			gameData.handCts || [],
-			convertMeldsData(gameData.melds || []),
-			convertCardArray(gameData.discards || []),
-			gameData.stack || 0,
-			gameData.activePlayerName || '',
-			gameData.playerCount || 0,
-			gameData.eventLog || []
-		);
-	}
-
 	function handleGameUpdate(gameData: any) {
 		console.log(gameData);
 		currentGame = new RummyGame(
@@ -73,6 +55,35 @@
 		);
 	}
 
+	function handleGameStateResponse(response: any) {
+		if (response['waiting_players']) {
+			players = response.waiting_players.map((p: any) => p.name) || [];
+		}
+		else if (response['game_state']) {
+			handleGameUpdate(response['game_state']);
+		}
+		else console.log(response);
+	}
+
+	function startPolling(interval: number = 1000): void {
+		setInterval(async() => {
+			if (currentGame?.activePlayerName == playerName) return;
+			try {
+				const response = await fetch(API_URL + "/game_state", {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json"
+					},
+					body: JSON.stringify({ player_id : playerToken })
+				});
+				const data = await response.json();
+				handleGameStateResponse(data);
+			} catch (error) {
+				console.error("Error fetching API:", error);
+			}
+		}, interval);
+	}
+
 	async function makeGameMove(move: string, data: any) {
 		const response = await fetch(API_URL + '/game', {
 			method: 'POST',
@@ -86,6 +97,8 @@
 				data: data
 			})
 		});
+		const answer = await response.json();
+		handleGameStateResponse(answer);
 	}
 
 	async function drawFromStack() {
@@ -139,8 +152,7 @@
 					selectedPlayers = new Set([...selectedPlayers, playerName]);
 				}
 
-				// Connect to WebSocket and register player
-				connectWebSocket();
+				startPolling();
 				return true;
 			} else {
 				error = data.message || "Failed to join game";
@@ -195,52 +207,6 @@
 		}
 	}
 
-	function connectWebSocket() {
-		if (socket || !playerToken) return;
-
-		socket = io(API_URL);
-
-		socket.on('connect', () => {
-			console.log('Connected to server');
-			// Register this player with the server
-			socket?.emit('register_player', { player_id: playerToken });
-		});
-
-		socket.on('registered', (data) => {
-			console.log('Player registered:', data);
-		});
-
-		socket.on('game_started', (data) => {
-			console.log('Game started notification:', data);
-			if (data.success && data.game_state) {
-				handleGameStart(data.game_state);
-			}
-		});
-
-		socket.on('game_updated', (data) => {
-			console.log('Game updated notification:', data);
-			if (data.success && data.game_state) {
-				handleGameUpdate(data.game_state);
-			}
-		});
-
-		socket.on('error', (data) => {
-			console.error('Socket error:', data);
-			error = data.message || 'Connection error';
-		});
-
-		socket.on('disconnect', () => {
-			console.log('Disconnected from server');
-		});
-	}
-
-	function disconnectWebSocket() {
-		if (socket) {
-			socket.disconnect();
-			socket = null;
-		}
-	}
-
 	function togglePlayer(player: string) {
 		const newSelectedPlayers = new Set(selectedPlayers);
 		if (newSelectedPlayers.has(player)) {
@@ -250,21 +216,12 @@
 		}
 		selectedPlayers = newSelectedPlayers; // Trigger reactivity with new Set
 	}
-
-	onMount(() => {
-		// Connection will be established when player joins
-	});
-
-	onDestroy(() => {
-		disconnectWebSocket();
-	});
 </script>
 
 {#if currentGame}
 	<GameContainer 
 		currentGame={currentGame} 
 		playerName={playerName} 
-		socket={socket}
 		{drawFromStack}
 		{drawFromDiscard}
 		{playMeld}

@@ -5,7 +5,6 @@
     let { 
         currentGame, 
         playerName, 
-        socket, 
         drawFromStack, 
         drawFromDiscard, 
         playMeld, 
@@ -13,7 +12,6 @@
     }: { 
         currentGame: RummyGame, 
         playerName: string, 
-        socket: any,
         drawFromStack: () => Promise<void>,
         drawFromDiscard: (card: Card) => Promise<void>,
         playMeld: (cards: Card[]) => Promise<void>,

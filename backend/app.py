@@ -1,13 +1,12 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from flask_socketio import SocketIO, emit, disconnect
 from rummy import RummyGame, Card, Suit, Rank, RANK_NAMES
 import uuid
 from typing import Dict, List, Optional
 import json
 
 app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins="*")  # Enable WebSocket support with CORS
+CORS(app)
 
 # Enable CORS for all routes
 from flask_cors import cross_origin
@@ -26,45 +25,6 @@ def generate_player_id() -> str:
 def generate_game_id() -> str:
     """Generate a unique game ID."""
     return str(uuid.uuid4())
-
-# WebSocket event handlers
-@socketio.on('connect')
-def handle_connect():
-    """Handle client connection."""
-    print(f"Client connected: {request.sid}")
-
-@socketio.on('disconnect')
-def handle_disconnect():
-    """Handle client disconnection."""
-    print(f"Client disconnected: {request.sid}")
-    # Remove any player associations with this connection
-    players_to_remove = []
-    for player_id, session_id in player_connections.items():
-        if session_id == request.sid:
-            players_to_remove.append(player_id)
-    
-    for player_id in players_to_remove:
-        del player_connections[player_id]
-        # Remove from waiting list if present
-        waiting_players[:] = [p for p in waiting_players if p['id'] != player_id]
-
-@socketio.on('register_player')
-def handle_register_player(data):
-    """Register a player's socket connection with their player ID."""
-    try:
-        player_id = data.get('player_id')
-        if not player_id:
-            emit('error', {'message': 'player_id is required'})
-            return
-        
-        # Store the connection
-        player_connections[player_id] = request.sid
-        emit('registered', {'success': True, 'player_id': player_id})
-        print(f"Registered player {player_id} with session {request.sid}")
-        
-    except Exception as e:
-        emit('error', {'message': f'Registration error: {str(e)}'})
-        print(f"Registration error: {e}")
 
 @app.route("/")
 def hello_world():
@@ -234,6 +194,25 @@ def get_game_for_player(game_id: str, player_id: str) -> Dict:
         "eventLog": game.event_log
     }
 
+@app.route("/game_state", methods=["POST"])
+@cross_origin()
+def get_game_state() -> Dict:
+    try:
+        data = request.get_json()
+        if not "player_id" in data:
+            return jsonify({ "success": False })
+        player_id = data["player_id"]
+        if (player_id in player_games):
+            return jsonify({"success": True, "game_state": get_game_for_player(player_games[player_id], player_id)}), 200
+        elif (player_id in player_names):
+            return jsonify({ "success": True, "waiting_players": waiting_players })
+        else:
+            return jsonify({ "success": False })
+    except Exception as e:
+        return jsonify({"success": False, "message": f"Aaaauuugh {str(e)}"}), 500
+
+
+
 @app.route("/waiting-players", methods=["GET"])
 def get_waiting_players():
     """Get list of players waiting for a game."""
@@ -267,13 +246,13 @@ def game_move():
         elif move == "discard":
             card = Card(suit=Suit(data['data']['card']['suit']), rank=Rank(RANK_NAMES.index(data['data']['card']['value'])))
             game.discard_card(player_id, card)
-        for player_id in game.player_ids:
-            game_state = get_game_for_player(game_id, player_id)
-            socketio.emit('game_updated', {
-                'success': True,
-                'game_state': get_game_for_player(game_id, player_id)
-            }, room=player_connections[player_id])
-        return jsonify({"success": True, "message": "Game move handled successfully"}), 200
+        # for player_id in game.player_ids:
+        #     game_state = get_game_for_player(game_id, player_id)
+        #     socketio.emit('game_updated', {
+        #         'success': True,
+        #         'game_state': get_game_for_player(game_id, player_id)
+        #     }, room=player_connections[player_id])
+        return jsonify({"success": True, "game_state": get_game_for_player(game_id, player_id)}), 200
     except Exception as e:
         return jsonify({"success": False, "message": f"Error handling game move: {str(e)}"}), 500
 
