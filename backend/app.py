@@ -260,8 +260,14 @@ def game_move():
 @app.route("/quit", methods=["POST"])
 @cross_origin()
 def quit():
+    print("Someone is quitting")
     try:
-        data = request.get_json()
+        # Read raw text data from the request
+        raw_data = request.get_data(as_text=True)
+        
+        # Parse the JSON string manually
+        data = json.loads(raw_data)
+        
         if not data or 'player_id' not in data:
             return '', 204
         player_id = data['player_id']

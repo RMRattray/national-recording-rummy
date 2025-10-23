@@ -4,8 +4,8 @@
 	import GameContainer from '$lib/game-container.svelte';
 	import WelcomeScreen from '$lib/WelcomeScreen.svelte';
 
-	// const API_URL = "https://rummy.nationalrecordingregistry.net";
-	const API_URL = "http://127.0.0.1:5000";
+	const API_URL = "https://rummy.nationalrecordingregistry.net";
+	// const API_URL = "http://127.0.0.1:5000";
 
 	// Game state
 	let currentGame = $state<RummyGame | null>(null);
@@ -217,16 +217,8 @@
 	}
 
 	function onExit() {
-		alert("Player of ID " + playerToken + " is quitting");
-		fetch(API_URL + "/quit", {
-			method: 'POST',
-			headers: {
-				'Content-Type':'application/json',
-			},
-			body: JSON.stringify({
-				player_id: playerToken
-			})
-		})
+		const data = JSON.stringify({ player_id: playerToken });
+		navigator.sendBeacon(API_URL + "/quit", data);
 	}
 </script>
 
