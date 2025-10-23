@@ -3,7 +3,6 @@
 	import { RummyGame, Card, Suit, Value } from '$lib';
 	import GameContainer from '$lib/game-container.svelte';
 	import WelcomeScreen from '$lib/WelcomeScreen.svelte';
-	import { io, type Socket } from 'socket.io-client';
 
 	// const API_URL = "https://rummy.nationalrecordingregistry.net";
 	const API_URL = "http://127.0.0.1:5000";
@@ -216,7 +215,22 @@
 		}
 		selectedPlayers = newSelectedPlayers; // Trigger reactivity with new Set
 	}
+
+	function onExit() {
+		alert("Player of ID " + playerToken + " is quitting");
+		fetch(API_URL + "/quit", {
+			method: 'POST',
+			headers: {
+				'Content-Type':'application/json',
+			},
+			body: JSON.stringify({
+				player_id: playerToken
+			})
+		})
+	}
 </script>
+
+<svelte:window on:beforeunload={onExit} />
 
 {#if currentGame}
 	<GameContainer 

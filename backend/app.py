@@ -255,4 +255,32 @@ def game_move():
         #     }, room=player_connections[player_id])
         return jsonify({"success": True, "game_state": get_game_for_player(game_id, player_id)}), 200
     except Exception as e:
-        return jsonify({"success": False, "message": f"Error handling game move: {str(e)}"}), 500
+        return jsonify({"success": False, "message": f"Error handling game move: {str(e)}"}), 
+
+@app.route("/quit", methods=["POST"])
+@cross_origin()
+def quit():
+    try:
+        data = request.get_json()
+        if not data or 'player_id' not in data:
+            return '', 204
+        player_id = data['player_id']
+        if player_id in player_names:
+            if player_id in player_games:
+                # destroy game
+                game_id = player_games[player_id]
+                game = active_games[game_id]
+                game.event_log.append(f"{player_names[player_id]} left the game.")
+                game.num_players -= 1
+                if (game.num_players == 0):
+                    active_games.pop(game_id)
+                player_games.pop(player_id)
+            else:
+                # Remove players from waiting list
+                waiting_players[:] = [p for p in waiting_players if p['id'] != player_id]
+            player_names.pop(player_id)
+    except Exception as e:
+        print(f"Exception: {str(e)}")
+    finally:
+        return '', 204
+
