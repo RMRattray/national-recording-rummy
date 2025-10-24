@@ -48,7 +48,7 @@
 		flex-direction: column;
 		justify-content: space-between;
 		padding: 2px;
-		font-size: 0.5rem;
+		font-size: 0.8rem;
 		box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
 		cursor: pointer;
 		transition: transform 0.2s ease;
