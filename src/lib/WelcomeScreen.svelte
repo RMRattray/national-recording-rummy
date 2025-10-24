@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { io, type Socket } from 'socket.io-client';
 
 	// Props from parent component
 	export let joinGame: (playerNameInput: string) => Promise<boolean>;

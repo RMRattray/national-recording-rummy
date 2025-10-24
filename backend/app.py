@@ -1,13 +1,12 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from flask_socketio import SocketIO, emit, disconnect
 from rummy import RummyGame, Card, Suit, Rank, RANK_NAMES
 import uuid
 from typing import Dict, List, Optional
 import json
 
 app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins="*")  # Enable WebSocket support with CORS
+CORS(app)
 
 # Enable CORS for all routes
 from flask_cors import cross_origin
@@ -17,7 +16,7 @@ waiting_players: List[Dict[str, str]] = []  # List of waiting players with their
 active_games: Dict[str, RummyGame] = {}  # Game ID -> RummyGame instance
 player_games: Dict[str, str] = {}  # Player ID -> Game ID
 player_names: Dict[str, str] = {}  # Player ID -> Player Name
-player_connections: Dict[str, str] = {}  # Player ID -> Socket session ID
+# player_connections: Dict[str, str] = {}  # Player ID -> Socket session ID
 
 def generate_player_id() -> str:
     """Generate a unique player ID."""
@@ -26,45 +25,6 @@ def generate_player_id() -> str:
 def generate_game_id() -> str:
     """Generate a unique game ID."""
     return str(uuid.uuid4())
-
-# WebSocket event handlers
-@socketio.on('connect')
-def handle_connect():
-    """Handle client connection."""
-    print(f"Client connected: {request.sid}")
-
-@socketio.on('disconnect')
-def handle_disconnect():
-    """Handle client disconnection."""
-    print(f"Client disconnected: {request.sid}")
-    # Remove any player associations with this connection
-    players_to_remove = []
-    for player_id, session_id in player_connections.items():
-        if session_id == request.sid:
-            players_to_remove.append(player_id)
-    
-    for player_id in players_to_remove:
-        del player_connections[player_id]
-        # Remove from waiting list if present
-        waiting_players[:] = [p for p in waiting_players if p['id'] != player_id]
-
-@socketio.on('register_player')
-def handle_register_player(data):
-    """Register a player's socket connection with their player ID."""
-    try:
-        player_id = data.get('player_id')
-        if not player_id:
-            emit('error', {'message': 'player_id is required'})
-            return
-        
-        # Store the connection
-        player_connections[player_id] = request.sid
-        emit('registered', {'success': True, 'player_id': player_id})
-        print(f"Registered player {player_id} with session {request.sid}")
-        
-    except Exception as e:
-        emit('error', {'message': f'Registration error: {str(e)}'})
-        print(f"Registration error: {e}")
 
 @app.route("/")
 def hello_world():
@@ -91,6 +51,7 @@ def join_game():
     """
     try:
         data = request.get_json()
+
         if not data or 'name' not in data:
             return jsonify({
                 "success": False,
@@ -119,7 +80,7 @@ def join_game():
             "id": player_id,
             "name": player_name
         })
-        
+
         return jsonify({
             "success": True,
             "player_id": player_id,
@@ -193,18 +154,18 @@ def start_game():
         # Remove players from waiting list
         waiting_players[:] = [p for p in waiting_players if p['name'] not in player_names_list]
         
-        # Notify all players in the game via WebSocket
-        for player_name in player_names_list:
-            # Find the player ID for this name from the original waiting list
-            for player_id, name in player_names.items():
-                if name == player_name and player_id in player_connections:
-                    game_state = get_game_for_player(game_id, player_id)
-                    socketio.emit('game_started', {
-                        'success': True,
-                        'game_state': game_state,
-                        'message': f"Game started with players: {', '.join(player_names_list)}"
-                    }, room=player_connections[player_id])
-                    break
+        # # Notify all players in the game via WebSocket
+        # for player_name in player_names_list:
+        #     # Find the player ID for this name from the original waiting list
+        #     for player_id, name in player_names.items():
+        #         if name == player_name and player_id in player_connections:
+        #             game_state = get_game_for_player(game_id, player_id)
+        #             socketio.emit('game_started', {
+        #                 'success': True,
+        #                 'game_state': game_state,
+        #                 'message': f"Game started with players: {', '.join(player_names_list)}"
+        #             }, room=player_connections[player_id])
+        #             break
         
         return jsonify({
             "success": True,
@@ -233,6 +194,25 @@ def get_game_for_player(game_id: str, player_id: str) -> Dict:
         "gameOver": game.is_game_over(),
         "eventLog": game.event_log
     }
+
+@app.route("/game_state", methods=["POST"])
+@cross_origin()
+def get_game_state() -> Dict:
+    try:
+        data = request.get_json()
+        if not "player_id" in data:
+            return jsonify({ "success": False, "message": "no_player_id" })
+        player_id = data["player_id"]
+        if (player_id in player_games):
+            return jsonify({"success": True, "game_state": get_game_for_player(player_games[player_id], player_id)}), 200
+        elif (player_id in player_names):
+            return jsonify({ "success": True, "waiting_players": waiting_players })
+        else:
+            return jsonify({ "success": False, "message": f"Invalid player_id: {player_id}", "info": player_names })
+    except Exception as e:
+        return jsonify({"success": False, "message": f"Aaaauuugh {str(e)}"}), 500
+
+
 
 @app.route("/waiting-players", methods=["GET"])
 def get_waiting_players():
@@ -267,15 +247,46 @@ def game_move():
         elif move == "discard":
             card = Card(suit=Suit(data['data']['card']['suit']), rank=Rank(RANK_NAMES.index(data['data']['card']['value'])))
             game.discard_card(player_id, card)
-        for player_id in game.player_ids:
-            game_state = get_game_for_player(game_id, player_id)
-            socketio.emit('game_updated', {
-                'success': True,
-                'game_state': get_game_for_player(game_id, player_id)
-            }, room=player_connections[player_id])
-        return jsonify({"success": True, "message": "Game move handled successfully"}), 200
+        # for player_id in game.player_ids:
+        #     game_state = get_game_for_player(game_id, player_id)
+        #     socketio.emit('game_updated', {
+        #         'success': True,
+        #         'game_state': get_game_for_player(game_id, player_id)
+        #     }, room=player_connections[player_id])
+        return jsonify({"success": True, "game_state": get_game_for_player(game_id, player_id)}), 200
     except Exception as e:
-        return jsonify({"success": False, "message": f"Error handling game move: {str(e)}"}), 500
+        return jsonify({"success": False, "message": f"Error handling game move: {str(e)}"}), 
 
-if __name__ == "__main__":
-    socketio.run(app, debug=True, host="0.0.0.0", port=5000)
+@app.route("/quit", methods=["POST"])
+@cross_origin()
+def quit():
+    print("Someone is quitting")
+    try:
+        # Read raw text data from the request
+        raw_data = request.get_data(as_text=True)
+        
+        # Parse the JSON string manually
+        data = json.loads(raw_data)
+        
+        if not data or 'player_id' not in data:
+            return '', 204
+        player_id = data['player_id']
+        if player_id in player_names:
+            if player_id in player_games:
+                # destroy game
+                game_id = player_games[player_id]
+                game = active_games[game_id]
+                game.event_log.append(f"{player_names[player_id]} left the game.")
+                game.num_players -= 1
+                if (game.num_players == 0):
+                    active_games.pop(game_id)
+                player_games.pop(player_id)
+            else:
+                # Remove players from waiting list
+                waiting_players[:] = [p for p in waiting_players if p['id'] != player_id]
+            player_names.pop(player_id)
+    except Exception as e:
+        print(f"Exception: {str(e)}")
+    finally:
+        return '', 204
+
