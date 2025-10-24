@@ -47,7 +47,11 @@
                 selectedCards = newSelectedCards;
             } else {
                 // Discard the card
-                discardCard(card);
+				if (selectedCards.has(card)) {
+					playMeld(Array.from(selectedCards));
+					selectedCards = new Set();
+				}
+                else discardCard(card);
             }
         }
     }
@@ -67,7 +71,6 @@
 
 	$effect(() => {
 		if (currentGame.eventLog.length > 0) {
-			console.log("This line runs");
 			scrollContainer.scrollTop = scrollContainer.scrollHeight;
 		}
 	})
