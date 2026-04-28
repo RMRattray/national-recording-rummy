@@ -24,6 +24,9 @@
 
 	// Get player name
 	let playerName = $derived(game.playerNames[playerIndex] || 'Unknown Player');
+
+	// Get player score
+	let playerScore = $derived(game.playerScores[playerIndex] || 0);
 	
 	// Get hand count for this player
 	let handCount = $derived(game.handCts[playerIndex] || 0);
@@ -47,6 +50,7 @@
 	<div class="player-info">
 		<span class="player-name">{playerName}{user ? ' (You)' : ''}</span>
 		<span class="card-count">({user ? playerHand.length : handCount} cards)</span>
+		<span class="player-score">{playerScore} pts</span>
 	</div>
 	
 	<div class="player-area" class:vertical>
@@ -138,6 +142,10 @@
 	.card-count {
 		font-size: 0.7rem;
 		opacity: 0.8;
+	}
+
+	.player-score {
+		font-weight: bold;
 	}
 
 	.player-area {

@@ -181,9 +181,10 @@ def start_game():
 def get_game_for_player(game_id: str, player_id: str) -> Dict:
     """Helper function to get the game state for a specific player."""
     game = active_games[game_id]
-    return {
+    gameState = dict({
         "gameID": game_id,
         "playerNames": game.player_names,
+        "playerScores": [game.scores[i] for i in game.player_ids],
         "hand": [{"suit": card.suit.value, "value": RANK_NAMES[card.rank.value]} for card in game.players_hands[player_id]],
         "handCts": [len(game.players_hands[i]) for i in game.player_ids],
         "melds": [[[{"suit": card.suit.value, "value": RANK_NAMES[card.rank.value]} for card in meld.cards] for meld in p] for p in [game.players_melds[i] for i in game.player_ids]],
@@ -193,7 +194,8 @@ def get_game_for_player(game_id: str, player_id: str) -> Dict:
         "playerCount": game.num_players,
         "gameOver": game.is_game_over(),
         "eventLog": game.event_log
-    }
+    })
+    return gameState
 
 @app.route("/game_state", methods=["POST"])
 @cross_origin()
@@ -289,4 +291,3 @@ def quit():
         print(f"Exception: {str(e)}")
     finally:
         return '', 204
-
