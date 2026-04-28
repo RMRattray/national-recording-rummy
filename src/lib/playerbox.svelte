@@ -159,6 +159,10 @@
 
 	.sort-button {
 		background-color: #FFD700;
+		border-radius: 10px;
+		margin-left: 0.6em;
+		padding: 0.6em;
+		color: white;
 	}
 
 	.player-area {
@@ -191,6 +195,7 @@
 		display: flex;
 		gap: 0.1rem;
 		flex-wrap: wrap;
+		align-items: center;
 		justify-content: center;
 	}
 
