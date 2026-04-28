@@ -9,7 +9,8 @@
         lefttop, 
         user, 
         handleCardClick, 
-        isCardSelected, 
+        isCardSelected,
+		sortHand, 
         isMyTurn 
     }: { 
         game: RummyGame, 
@@ -19,6 +20,7 @@
         user: boolean,
         handleCardClick?: (card: Card, location: 'discard' | 'stack' | 'hand', event: MouseEvent) => void,
         isCardSelected?: (card: Card) => boolean,
+		sortHand?: () => void,
         isMyTurn?: boolean
     } = $props();
 
@@ -89,6 +91,13 @@
 						</div>
 					{/if}
 				{/each}
+				<button 
+					class="sort-button"
+					onclick={sortHand}
+					type="button"
+				>
+					SORT
+				</button>
 			{:else}
 				<!-- Show hidden cards for other players -->
 				{#each Array(handCount) as _, i}
@@ -146,6 +155,10 @@
 
 	.player-score {
 		font-weight: bold;
+	}
+
+	.sort-button {
+		background-color: #FFD700;
 	}
 
 	.player-area {

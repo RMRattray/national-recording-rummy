@@ -117,6 +117,10 @@
 		await makeGameMove('discard', { card: card });
 	}
 
+	async function sortHand(card: any) {
+		await makeGameMove('sort', {});
+	}
+
 	async function joinGame(playerNameInput: string) {
 		if (!playerNameInput.trim()) {
 			error = 'Please enter your name';
@@ -233,6 +237,7 @@
 		{drawFromDiscard}
 		{playMeld}
 		{discardCard}
+		{sortHand}
 	/>
 {:else}
 	<WelcomeScreen 

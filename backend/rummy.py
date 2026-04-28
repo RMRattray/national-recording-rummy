@@ -335,6 +335,10 @@ class RummyGame:
         
         return True
     
+    def sort_hand(self, player_id: int):
+        player_hand = self.players_hands[player_id]
+        player_hand.sort(key=lambda x: x.rank.value)
+    
     def get_player_hand(self, player_id: int) -> List[Card]:
         """
         Get a copy of a player's hand.

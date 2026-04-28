@@ -8,14 +8,16 @@
         drawFromStack, 
         drawFromDiscard, 
         playMeld, 
-        discardCard 
+        discardCard,
+		sortHand
     }: { 
         currentGame: RummyGame, 
         playerName: string, 
         drawFromStack: () => Promise<void>,
         drawFromDiscard: (card: Card) => Promise<void>,
         playMeld: (cards: Card[]) => Promise<void>,
-        discardCard: (card: Card) => Promise<void>
+        discardCard: (card: Card) => Promise<void>,
+		sortHand: () => Promise<void>
     } = $props();
     
     let myPlayerIndex = $derived(currentGame.playerNames.indexOf(playerName));
@@ -118,6 +120,7 @@
                 user={true}
                 {handleCardClick}
                 {isCardSelected}
+				{sortHand}
                 {isMyTurn}
             />
             

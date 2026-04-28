@@ -249,6 +249,8 @@ def game_move():
         elif move == "discard":
             card = Card(suit=Suit(data['data']['card']['suit']), rank=Rank(RANK_NAMES.index(data['data']['card']['value'])))
             game.discard_card(player_id, card)
+        elif move == "sort":
+            game.sort_hand(player_id)
         # for player_id in game.player_ids:
         #     game_state = get_game_for_player(game_id, player_id)
         #     socketio.emit('game_updated', {
