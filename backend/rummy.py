@@ -282,6 +282,7 @@ class RummyGame:
             return False
         
         # Remove cards from player's hand and add to player's melds
+        cards.sort(key=lambda x: x.rank.value) # sort meld
         for card in cards:
             player_hand.remove(card)
         
