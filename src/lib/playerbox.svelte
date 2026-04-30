@@ -121,8 +121,8 @@
 	}
 
 	.player-container.vertical {
-		min-width: 150px;
-		max-width: 200px;
+		min-width: 180px;
+		max-width: 240px;
 	}
 
 	.player-container.active {
@@ -139,8 +139,8 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		margin-bottom: 0.5rem;
-		font-size: 0.8rem;
+		margin-bottom: 0.8rem;
+		font-size: 1.5rem;
 	}
 
 	.player-name {
@@ -149,7 +149,7 @@
 	}
 
 	.card-count {
-		font-size: 0.7rem;
+		font-size: 1rem;
 		opacity: 0.8;
 	}
 
@@ -160,9 +160,11 @@
 	.sort-button {
 		background-color: #FFD700;
 		border-radius: 10px;
-		margin-left: 0.6em;
-		padding: 0.6em;
+		margin-left: 1em;
+		padding: 0.5em;
 		color: white;
+		font-size: 2.4em;
+		font-weight: bold;
 	}
 
 	.player-area {
