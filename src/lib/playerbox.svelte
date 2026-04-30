@@ -9,7 +9,8 @@
         lefttop, 
         user, 
         handleCardClick, 
-        isCardSelected, 
+        isCardSelected,
+		sortHand, 
         isMyTurn 
     }: { 
         game: RummyGame, 
@@ -19,11 +20,15 @@
         user: boolean,
         handleCardClick?: (card: Card, location: 'discard' | 'stack' | 'hand', event: MouseEvent) => void,
         isCardSelected?: (card: Card) => boolean,
+		sortHand?: () => void,
         isMyTurn?: boolean
     } = $props();
 
 	// Get player name
 	let playerName = $derived(game.playerNames[playerIndex] || 'Unknown Player');
+
+	// Get player score
+	let playerScore = $derived(game.playerScores[playerIndex] || 0);
 	
 	// Get hand count for this player
 	let handCount = $derived(game.handCts[playerIndex] || 0);
@@ -47,6 +52,7 @@
 	<div class="player-info">
 		<span class="player-name">{playerName}{user ? ' (You)' : ''}</span>
 		<span class="card-count">({user ? playerHand.length : handCount} cards)</span>
+		<span class="player-score">{playerScore} pts</span>
 	</div>
 	
 	<div class="player-area" class:vertical>
@@ -85,6 +91,13 @@
 						</div>
 					{/if}
 				{/each}
+				<button 
+					class="sort-button"
+					onclick={sortHand}
+					type="button"
+				>
+					SORT
+				</button>
 			{:else}
 				<!-- Show hidden cards for other players -->
 				{#each Array(handCount) as _, i}
@@ -108,8 +121,8 @@
 	}
 
 	.player-container.vertical {
-		min-width: 150px;
-		max-width: 200px;
+		min-width: 180px;
+		max-width: 240px;
 	}
 
 	.player-container.active {
@@ -126,8 +139,8 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		margin-bottom: 0.5rem;
-		font-size: 0.8rem;
+		margin-bottom: 0.8rem;
+		font-size: 1.5rem;
 	}
 
 	.player-name {
@@ -136,8 +149,22 @@
 	}
 
 	.card-count {
-		font-size: 0.7rem;
+		font-size: 1rem;
 		opacity: 0.8;
+	}
+
+	.player-score {
+		font-weight: bold;
+	}
+
+	.sort-button {
+		background-color: #FFD700;
+		border-radius: 10px;
+		margin-left: 1em;
+		padding: 0.5em;
+		color: white;
+		font-size: 2.4em;
+		font-weight: bold;
 	}
 
 	.player-area {
@@ -170,6 +197,7 @@
 		display: flex;
 		gap: 0.1rem;
 		flex-wrap: wrap;
+		align-items: center;
 		justify-content: center;
 	}
 

@@ -4,8 +4,8 @@
 	import GameContainer from '$lib/game-container.svelte';
 	import WelcomeScreen from '$lib/WelcomeScreen.svelte';
 
-	const API_URL = "https://rummy.nationalrecordingregistry.net";
-	// const API_URL = "http://127.0.0.1:5000";
+	// const API_URL = "https://rummy.nationalrecordingregistry.net";
+	const API_URL = "http://127.0.0.1:5000";
 
 	// Game state
 	let currentGame = $state<RummyGame | null>(null);
@@ -43,6 +43,7 @@
 		currentGame = new RummyGame(
 			gameData.gameID || 'unknown',
 			gameData.playerNames || [],
+			gameData.playerScores || [],
 			convertCardArray(gameData.hand || []),
 			gameData.handCts || [],
 			convertMeldsData(gameData.melds || []),
@@ -114,6 +115,10 @@
 
 	async function discardCard(card: any) {
 		await makeGameMove('discard', { card: card });
+	}
+
+	async function sortHand(card: any) {
+		await makeGameMove('sort', {});
 	}
 
 	async function joinGame(playerNameInput: string) {
@@ -232,6 +237,7 @@
 		{drawFromDiscard}
 		{playMeld}
 		{discardCard}
+		{sortHand}
 	/>
 {:else}
 	<WelcomeScreen 

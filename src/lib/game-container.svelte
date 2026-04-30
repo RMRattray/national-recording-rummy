@@ -8,14 +8,16 @@
         drawFromStack, 
         drawFromDiscard, 
         playMeld, 
-        discardCard 
+        discardCard,
+		sortHand
     }: { 
         currentGame: RummyGame, 
         playerName: string, 
         drawFromStack: () => Promise<void>,
         drawFromDiscard: (card: Card) => Promise<void>,
         playMeld: (cards: Card[]) => Promise<void>,
-        discardCard: (card: Card) => Promise<void>
+        discardCard: (card: Card) => Promise<void>,
+		sortHand: () => Promise<void>
     } = $props();
     
     let myPlayerIndex = $derived(currentGame.playerNames.indexOf(playerName));
@@ -118,6 +120,7 @@
                 user={true}
                 {handleCardClick}
                 {isCardSelected}
+				{sortHand}
                 {isMyTurn}
             />
             
@@ -210,7 +213,7 @@
 		/* position: fixed; */
 		top: 0.5rem;
 		right: 0.5rem;
-		width: 250px;
+		width: 20%;
 		max-height: calc(100vh - 1rem);
 		background: rgba(0, 0, 0, 0.9);
 		border-radius: 6px;
@@ -239,10 +242,9 @@
 	}
 
 	.event-item {
-		padding: 0.25rem;
+		padding: 0.5rem;
 		background: rgba(255, 255, 255, 0.1);
 		border-radius: 3px;
-		font-size: 0.7rem;
 		line-height: 1.2;
 		border-left: 2px solid #90EE90;
 	}

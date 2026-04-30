@@ -21,15 +21,11 @@
 <div class="card" class:revealed-card={revealed} class:hidden-card={!revealed}>
     {#if revealed}
         <div class="card-top" style="color: {getCardColor(card.suit)}">
-            <span class="suit">{getSuitSymbol(card.suit)}</span>
+            <span class="suit"></span>
             <span class="value">{card.value}</span>
         </div>
         <div class="card-center" style="color: {getCardColor(card.suit)}">
             <span class="suit-large">{getSuitSymbol(card.suit)}</span>
-        </div>
-        <div class="card-bottom" style="color: {getCardColor(card.suit)}">
-            <span class="suit">{getSuitSymbol(card.suit)}</span>
-            <span class="value">{card.value}</span>
         </div>
     {:else}
         <div class="card-back">🂠</div>
@@ -39,8 +35,8 @@
 <style>
 	/* Card styling */
 	.card {
-		width: 35px;
-		height: 49px;
+		width: 60px;
+		height: 84px;
 		border-radius: 4px;
 		border: 1px solid #333;
 		position: relative;
@@ -71,7 +67,7 @@
 	}
 
 	.card-back {
-		font-size: 1rem;
+		font-size: 2.4rem;
 		color: #FFD700;
 	}
 
@@ -92,11 +88,16 @@
 		flex: 1;
 	}
 
+	.suit {
+		font-size: large;
+	}
+
 	.suit-large {
-		font-size: 0.8rem;
+		font-size: 2.4rem;
 	}
 
 	.value {
 		font-weight: bold;
+		font-size: x-large;
 	}
 </style>

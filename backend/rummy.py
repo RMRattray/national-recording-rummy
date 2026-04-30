@@ -228,7 +228,15 @@ class RummyGame:
             drawn_cards = self.discard_pile[card_index:]
             self.discard_pile = self.discard_pile[:card_index]
             self.players_hands[player_id] += drawn_cards
-            self.event_log.append(f"{self.player_names[self.player_ids.index(player_id)]} drew a card from the discard pile")
+            match len(drawn_cards):
+                case 1:
+                    self.event_log.append(f"{self.player_names[self.player_ids.index(player_id)]} drew the {drawn_cards[0]} from the discard pile")
+                case 2:
+                    self.event_log.append(f"{self.player_names[self.player_ids.index(player_id)]} drew the {drawn_cards[0]} and the {drawn_cards[1]} from the discard pile")
+                case 3:
+                    self.event_log.append(f"{self.player_names[self.player_ids.index(player_id)]} drew the {drawn_cards[0]}, the {drawn_cards[1]}, and the {drawn_cards[2]} from the discard pile")
+                case _:
+                    self.event_log.append(f"{self.player_names[self.player_ids.index(player_id)]} drew {len(drawn_cards)} cards from the discard pile, beginning with the {drawn_cards[0]}")
             self.current_player_has_drawn = True
             return True
         except ValueError:
@@ -282,6 +290,7 @@ class RummyGame:
             return False
         
         # Remove cards from player's hand and add to player's melds
+        cards.sort(key=lambda x: x.rank.value) # sort meld
         for card in cards:
             player_hand.remove(card)
         
@@ -334,6 +343,10 @@ class RummyGame:
             self.end_turn()
         
         return True
+    
+    def sort_hand(self, player_id: int):
+        player_hand = self.players_hands[player_id]
+        player_hand.sort(key=lambda x: x.rank.value)
     
     def get_player_hand(self, player_id: int) -> List[Card]:
         """

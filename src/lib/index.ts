@@ -39,6 +39,7 @@ export class Card {
 export class RummyGame {
     gameID: string;
     playerNames: string[];
+    playerScores: number[];
     hand: Card[];
     handCts: number[];
     melds: Card[][][]; // by player, then by meld, then by 
@@ -51,6 +52,7 @@ export class RummyGame {
     constructor(
         gameID: string,
         playerNames: string[],
+        playerScores: number[],
         hand: Card[],
         handCts: number[],
         melds: Card[][][],
@@ -62,6 +64,7 @@ export class RummyGame {
     ) {
         this.gameID = gameID;
         this.playerNames = playerNames;
+        this.playerScores = playerScores;
         this.hand = hand;
         this.handCts = handCts;
         this.melds = melds;
