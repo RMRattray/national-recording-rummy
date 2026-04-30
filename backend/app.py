@@ -28,7 +28,7 @@ def generate_game_id() -> str:
 
 @app.route("/")
 def hello_world():
-    return "<p>Rummy Game API - Welcome!</p>"
+    return '<p>This is the backend to National Recording Rummy.  For the frontend, click <a href="https://nationalrecordingregistry.net/games/rummy/index.html">here</a></p>'
 
 @app.route("/join", methods=["POST"])
 @cross_origin()
