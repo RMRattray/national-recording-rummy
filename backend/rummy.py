@@ -28,13 +28,20 @@ class Rank(Enum):
     QUEEN = 12
     KING = 13
 
+class MeldType(Enum):
+    NONE = 0
+    SET = 1
+    RUN = 2
+
 RANK_NAMES = ['','A','2','3','4','5','6','7','8','9','10','J','Q','K']
+MELD_TYPE_NAMES = ['NONE','SET','RUN']
 
 @dataclass
 class Card:
     """Represents a playing card."""
     suit: Suit
     rank: Rank
+    meld_type: MeldType
     
     def __str__(self) -> str:
         return f"{self.rank.name.lower()} of {self.suit.value}"
@@ -42,7 +49,7 @@ class Card:
     def __eq__(self, other) -> bool:
         if not isinstance(other, Card):
             return False
-        return self.suit == other.suit and self.rank == other.rank
+        return self.suit == other.suit and self.rank == other.rank and self.meld_type == other.meld_type
     
     def __hash__(self) -> int:
         return hash((self.suit, self.rank))
@@ -51,49 +58,26 @@ class Card:
 class Meld:
     """Represents a meld (set or run) of cards."""
     cards: List[Card]
-    meld_type: str  # "set" or "run"
-    built_on: Optional["Meld"] # can be None
+    meld_type: MeldType 
 
-def forms_solo_meld(cards: List[Card]) -> str:
+def forms_meld(cards: List[Card]) -> MeldType:
     if (len(cards) < 3):
-        return ""
+        return MeldType.NONE 
     
     rank = cards[0].rank 
-    if all(card.rank == rank for card in cards):
-        return "set"
+    if all(card.rank == rank and card.meld_type != MeldType.RUN for card in cards):
+        return MeldType.SET
     
     suit = cards[0].suit 
-    if not all(card.suit == suit for card in cards):
-        return ""
+    if not all(card.suit == suit and card.meld_type != MeldType.SET for card in cards):
+        return MeldType.NONE
     
     ranks = sorted([card.rank.value for card in cards])
     for i in range(1, len(ranks)):
         if (not ((ranks[i] == ranks[i - 1] + 1) or (i == 1 and ranks[0] == 1 and ranks[-1] == 13))):
-            return "" 
+            return MeldType.NONE
     
-    return "run"
-
-def forms_joint_meld(cards: List[Card], meld: Meld) -> bool:
-    c = cards + meld.cards 
-    p = meld.built_on
-    while (p is not None):
-        c += p.cards 
-        p = p.built_on
-    
-    if (meld.meld_type == "set"):
-        rank = c[0].rank 
-        return all(card.rank == rank for card in c)
-    
-    elif (meld.meld_type == "run"):
-        suit = c[0].suit 
-        if not all(card.suit == suit for card in c):
-            return False 
-        ranks = sorted([card.rank.value for card in cards])
-        for i in range(1, len(ranks)):
-            if (not (ranks[i] == ranks[i - 1] + 1) or (i == 1 and ranks[0] == 1 and ranks[-1] == 13)):
-                return False 
-        return True 
-    return False
+    return MeldType.RUN
 
 
 class RummyGame:
@@ -146,7 +130,7 @@ class RummyGame:
         self.stack = []
         for suit in Suit:
             for rank in Rank:
-                self.stack.append(Card(suit, rank))
+                self.stack.append(Card(suit, rank, MeldType.NONE))
         random.shuffle(self.stack)
     
     def _deal_cards(self) -> None:
@@ -260,42 +244,34 @@ class RummyGame:
         if player_id not in self.player_ids:
             raise ValueError(f"Invalid player ID: {player_id}")
         
-        # Check if player has all the cards
+        # Check if all cards are in player's hand or existing melds
         player_hand = self.players_hands[player_id]
+        existing_melds = [c for melds in self.players_melds.values() for m in melds for c in m.cards]
         for card in cards:
-            if card not in player_hand:
-                return False
+            if card.meld_type == MeldType.NONE:
+                if card not in player_hand:
+                    return False
+            else:
+                if card not in existing_melds:
+                    return False
         
-        meld = None 
-        if (len(cards) >= 3):
-            meld_type = forms_solo_meld(cards)
-            if meld_type:
-                meld = Meld(cards, meld_type, None)
-        else:
-            # Check if can form a run w/ any other sets
-            for p in self.players_melds.values():
-                for m in p:
-                    if m.meld_type == "run":
-                        if forms_joint_meld(cards, m):
-                            meld = Meld(cards, "run", m)
-            
-            for p in self.players_melds.values():
-                for m in p:
-                    if m.meld_type == "set":
-                        if forms_joint_meld(cards, m):
-                            meld = Meld(cards, "set", m)
-        
-        if meld is None:
+        # Check if cards form valid meld
+        meld_type = forms_meld(cards)
+        if meld_type == MeldType.NONE:
             self.event_log.append(f"{self.player_names[self.player_ids.index(player_id)]} attempted to play an invalid meld")
             return False
         
         # Remove cards from player's hand and add to player's melds
         cards.sort(key=lambda x: x.rank.value) # sort meld
+        meld = Meld([], meld_type)
         for card in cards:
-            player_hand.remove(card)
+            if card in player_hand:
+                player_hand.remove(card)
+                card.meld_type = meld_type
+                meld.cards.append(card)
         
         self.players_melds[player_id].append(meld)
-        self.event_log.append(f"{self.player_names[self.player_ids.index(player_id)]} played a {meld.meld_type}")
+        self.event_log.append(f"{self.player_names[self.player_ids.index(player_id)]} played a {MELD_TYPE_NAMES[meld.meld_type.value]}")
         # Check if player's hand is empty (game end condition)
         if len(player_hand) == 0:
             self.event_log.append(f"{self.player_names[self.player_ids.index(player_id)]} is out of cards!")

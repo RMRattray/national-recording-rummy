@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { RummyGame, Card, Suit, Value } from '$lib';
+    import { RummyGame, Card, Suit, Value, MeldType, formsMeld } from '$lib';
     import Playerbox from '$lib/playerbox.svelte';
     import CardBox from '$lib/cardbox.svelte';
     let { 
@@ -30,7 +30,7 @@
     // Check if it's the current player's turn
     let isMyTurn = $derived(currentGame.activePlayerName === playerName);
 
-    function handleCardClick(card: Card, location: 'discard' | 'stack' | 'hand', event: MouseEvent) {
+    function handleCardClick(card: Card, location: 'discard' | 'stack' | 'hand' | 'melds', event: MouseEvent) {
         if (!isMyTurn) return;
 
         if (location === 'discard') {
@@ -39,6 +39,9 @@
             drawFromStack();
         } else if (location === 'hand') {
             if (event.shiftKey) {
+				selectedCards = new Set();
+				discardCard(card);
+			} else {
                 // Toggle card selection
                 const newSelectedCards = new Set(selectedCards);
                 if (newSelectedCards.has(card)) {
@@ -47,11 +50,17 @@
                     newSelectedCards.add(card);
                 }
                 selectedCards = newSelectedCards;
-            } else {
-                // Discard the card
-                discardCard(card);
             }
-        }
+        } else if (location === 'melds') {
+			// Toggle card selection
+			const newSelectedCards = new Set(selectedCards);
+			if (newSelectedCards.has(card)) {
+				newSelectedCards.delete(card);
+			} else {
+				newSelectedCards.add(card);
+			}
+			selectedCards = newSelectedCards;
+		}
     }
 
     function handlePlayMeld() {
@@ -69,7 +78,6 @@
 
 	$effect(() => {
 		if (currentGame.eventLog.length > 0) {
-			console.log("This line runs");
 			scrollContainer.scrollTop = scrollContainer.scrollHeight;
 		}
 	})
@@ -80,10 +88,10 @@
 <div class="game-container">
 	<main class="game-main">
         {#if currentGame.playerCount > 2}
-        <Playerbox game={currentGame} playerIndex={leftPlayerIndex} vertical={true} lefttop={true} user={false}/> 
+        <Playerbox game={currentGame} playerIndex={leftPlayerIndex} vertical={true} lefttop={true} user={false} handleCardClick={handleCardClick} isCardSelected={isCardSelected} isMyTurn={isMyTurn}/> 
         {/if}
         <div class="center-area">
-            <Playerbox game={currentGame} playerIndex={oppoPlayerIndex} vertical={false} lefttop={true} user={false}/>
+            <Playerbox game={currentGame} playerIndex={oppoPlayerIndex} vertical={false} lefttop={true} user={false} handleCardClick={handleCardClick} isCardSelected={isCardSelected} isMyTurn={isMyTurn}/>
             <!-- Discard pile -->
 			<div class="discards-section">
 				<h3>Discard Pile</h3>
@@ -92,11 +100,11 @@
                     <button 
                         class="clickable-card" 
                         class:disabled={!isMyTurn}
-                        onclick={(e) => handleCardClick(new Card(Suit.SPADES, Value.ACE), 'stack', e)}
+                        onclick={(e) => handleCardClick(new Card(Suit.SPADES, Value.ACE, MeldType.NONE), 'stack', e)}
                         type="button"
                         disabled={!isMyTurn}
                     >
-                        <CardBox card={new Card(Suit.SPADES, Value.ACE)} revealed={false}/>
+                        <CardBox card={new Card(Suit.SPADES, Value.ACE, MeldType.NONE)} revealed={false}/>
                     </button>
                     {/if}
 					{#each currentGame.discards as card}
@@ -130,7 +138,8 @@
                     <button 
                         class="play-meld-button" 
                         onclick={handlePlayMeld}
-                        disabled={selectedCards.size === 0}
+                        disabled={!formsMeld(selectedCards)}
+						hidden={selectedCards.size === 0}
                         type="button"
                     >
                         Play Meld ({selectedCards.size} cards)
@@ -139,7 +148,7 @@
             {/if}
         </div>
         {#if currentGame.playerCount > 3}
-        <Playerbox game={currentGame} playerIndex={rightPlayerIndex} vertical={true} lefttop={true} user={false}/> 
+        <Playerbox game={currentGame} playerIndex={rightPlayerIndex} vertical={true} lefttop={true} user={false} handleCardClick={handleCardClick} isCardSelected={isCardSelected} isMyTurn={isMyTurn}/> 
         {/if}
 	</main>
 

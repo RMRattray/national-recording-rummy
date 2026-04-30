@@ -22,7 +22,7 @@
 	$effect(() => console.log(currentGame));
 
 	function convertCardData(cardData: any): Card {
-		return new Card(cardData.suit, cardData.value
+		return new Card(cardData.suit, cardData.value, cardData.meld_type
 		);
 	}
 
@@ -117,7 +117,7 @@
 		await makeGameMove('discard', { card: card });
 	}
 
-	async function sortHand(card: any) {
+	async function sortHand() {
 		await makeGameMove('sort', {});
 	}
 

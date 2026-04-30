@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from rummy import RummyGame, Card, Suit, Rank, RANK_NAMES
+from rummy import RummyGame, Card, Suit, Rank, MeldType, RANK_NAMES, MELD_TYPE_NAMES
 import uuid
 from typing import Dict, List, Optional
 import json
@@ -178,6 +178,12 @@ def start_game():
             "message": f"Error starting game: {str(e)}"
         }), 500
 
+def convert_card(card: Card) -> Dict:
+    return {"suit": card.suit.value, "value": RANK_NAMES[card.rank.value], "meld_type": MELD_TYPE_NAMES[card.meld_type.value]}
+
+def convert_card_back(data: Dict) -> Card:
+    return Card(suit=Suit(data["suit"]), rank=Rank(RANK_NAMES.index(data["value"])), meld_type=MeldType(MELD_TYPE_NAMES.index(data["meld_type"])))
+
 def get_game_for_player(game_id: str, player_id: str) -> Dict:
     """Helper function to get the game state for a specific player."""
     game = active_games[game_id]
@@ -185,10 +191,10 @@ def get_game_for_player(game_id: str, player_id: str) -> Dict:
         "gameID": game_id,
         "playerNames": game.player_names,
         "playerScores": [game.scores[i] for i in game.player_ids],
-        "hand": [{"suit": card.suit.value, "value": RANK_NAMES[card.rank.value]} for card in game.players_hands[player_id]],
+        "hand": [convert_card(card) for card in game.players_hands[player_id]],
         "handCts": [len(game.players_hands[i]) for i in game.player_ids],
-        "melds": [[[{"suit": card.suit.value, "value": RANK_NAMES[card.rank.value]} for card in meld.cards] for meld in p] for p in [game.players_melds[i] for i in game.player_ids]],
-        "discards": [{"suit": card.suit.value, "value": RANK_NAMES[card.rank.value]} for card in game.discard_pile],
+        "melds": [[[convert_card(card) for card in meld.cards] for meld in p] for p in [game.players_melds[i] for i in game.player_ids]],
+        "discards": [convert_card(card) for card in game.discard_pile],
         "stack": len(game.stack), 
         "activePlayerName": game.player_names[game.current_player], 
         "playerCount": game.num_players,
@@ -241,13 +247,13 @@ def game_move():
         if move == "draw-stack":
             game.draw_from_stack(player_id)
         elif move == "draw-discard":
-            card = Card(suit=Suit(data['data']['card']['suit']), rank=Rank(RANK_NAMES.index(data['data']['card']['value'])))
+            card = convert_card_back(data['data']['card'])
             game.draw_from_discard(player_id, card)
         elif move == "play-meld":
-            cards = [Card(suit=Suit(card['suit']), rank=Rank(RANK_NAMES.index(card['value']))) for card in data['data']['cards']]
+            cards = [convert_card_back(card) for card in data['data']['cards']]
             game.play_meld(player_id, cards)
         elif move == "discard":
-            card = Card(suit=Suit(data['data']['card']['suit']), rank=Rank(RANK_NAMES.index(data['data']['card']['value'])))
+            card = convert_card_back(data['data']['card'])
             game.discard_card(player_id, card)
         elif move == "sort":
             game.sort_hand(player_id)
