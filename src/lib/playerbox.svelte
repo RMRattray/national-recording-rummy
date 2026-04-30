@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { RummyGame, Card, Suit, Value } from '$lib';
+	import { RummyGame, Card, Suit, Value, MeldType } from '$lib';
 	import CardBox from '$lib/cardbox.svelte';
 
     let { 
@@ -18,7 +18,7 @@
         vertical: boolean, 
         lefttop: boolean, 
         user: boolean,
-        handleCardClick?: (card: Card, location: 'discard' | 'stack' | 'hand', event: MouseEvent) => void,
+        handleCardClick?: (card: Card, location: 'discard' | 'stack' | 'hand' | 'melds', event: MouseEvent) => void,
         isCardSelected?: (card: Card) => boolean,
 		sortHand?: () => void,
         isMyTurn?: boolean
@@ -61,7 +61,24 @@
 			{#each playerMelds as meld}
             <div class="meld">
 				{#each meld as card}
-					<CardBox card={card} revealed={true} />
+					{#if handleCardClick && isMyTurn}
+						<button 
+							class="hand-card" 
+							class:selected={isCardSelected && isCardSelected(card)}
+							class:clickable={true}
+							onclick={(e) => handleCardClick(card, 'melds', e)}
+							type="button"
+						>
+							<CardBox card={card} revealed={true} />
+						</button>
+					{:else}
+						<div 
+							class="hand-card" 
+							class:selected={isCardSelected && isCardSelected(card)}
+						>
+							<CardBox card={card} revealed={true} />
+						</div>
+					{/if}
 				{/each}
             </div>
 			{/each}
@@ -101,7 +118,7 @@
 			{:else}
 				<!-- Show hidden cards for other players -->
 				{#each Array(handCount) as _, i}
-					<CardBox card={new Card(Suit.SPADES, Value.ACE)} revealed={false} />
+					<CardBox card={new Card(Suit.SPADES, Value.ACE, MeldType.NONE)} revealed={false} />
 				{/each}
 			{/if}
 		</div>
