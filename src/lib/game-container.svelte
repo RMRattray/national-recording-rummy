@@ -142,7 +142,7 @@
 						hidden={selectedCards.size === 0}
                         type="button"
                     >
-                        Play Meld ({selectedCards.size} cards)
+                        Play Meld ({selectedCards.size} card{selectedCards.size > 1 ? "s" : ""})
                     </button>
                 </div>
             {/if}

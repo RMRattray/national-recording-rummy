@@ -51,7 +51,7 @@
 >
 	<div class="player-info">
 		<span class="player-name">{playerName}{user ? ' (You)' : ''}</span>
-		<span class="card-count">({user ? playerHand.length : handCount} cards)</span>
+		<span class="card-count">({user ? playerHand.length : handCount} card{user && playerHand.length > 1 || !user && handCount > 1 ? "s" : ""})</span>
 		<span class="player-score">{playerScore} pts</span>
 	</div>
 	
