@@ -113,6 +113,7 @@ class RummyGame:
         self.discard_pile: List[Card] = []
         self.current_player = 0
         self.current_player_has_drawn = False
+        self.round = 0
         self.game_over = False
         self.winner = None
         self.scores: Dict[str, int] = {}
@@ -466,6 +467,10 @@ class RummyGame:
             self._deal_cards()
 
             self.end_turn()
+
+            # End round (make separate function?)
+            self.round += 1
+            self.current_player = self.round % self.num_players
         
         else:
             # Find the winner (highest score)
