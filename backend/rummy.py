@@ -453,33 +453,41 @@ class RummyGame:
         self.game_over = True
         
         # Calculate scores for all players
-        over_500 = False
+        maxScore = 499 # if score is broken, in "winning" territory.  Will never be equal to this score b/c cards worth fives
+        tied = False
         for player_id in self.player_ids:
             round_score = self._calculate_player_score(player_id)
             name = self.player_names[self.player_ids.index(player_id)]
             self.scores[player_id] += round_score
             self.event_log.append(f"{name} gets {round_score} points, for a total of {self.scores[player_id]}")
-            if (self.scores[player_id] > 500):
-                over_500 = True
+            if (self.scores[player_id] > maxScore):
+                maxScore = self.scores[player_id]
+                tied = False 
+            elif (self.scores[player_id] == maxScore):
+                tied = True
  
-        
-        if (not over_500):
-            self.event_log.append("No one has over 500 points - play continues")
-            # Create and shuffle deck
-            self._create_deck()
-
-            self._deal_cards()
-
-            self.end_turn()
-
-            # End round (make separate function?)
-            self.round += 1
-            self.current_player = self.round % self.num_players
-        
-        else:
+        if (maxScore >= 500 and not tied):
             # Find the winner (highest score)
             self.winner = self.player_names[self.player_ids.index(max(self.player_ids, key=lambda pid: self.scores[pid]))]
             self.event_log.append(f"{self.winner} wins!")
+            return
+        
+        if (maxScore < 500 ):
+            self.event_log.append("No one has 500 points - play continues")
+        else:
+            self.event_log.append("Players are tied at or above 500 - play continues")
+
+        # Create and shuffle deck
+        self._create_deck()
+
+        self._deal_cards()
+
+        self.end_turn()
+
+        # End round (make separate function?)
+        self.round += 1
+        self.current_player = self.round % self.num_players
+
     
     def end_turn(self) -> None:
         """End the current player's turn and move to the next player."""
