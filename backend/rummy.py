@@ -265,14 +265,18 @@ class RummyGame:
         # Remove cards from player's hand and add to player's melds
         cards.sort(key=lambda x: x.rank.value) # sort meld
         meld = Meld([], meld_type)
+        allNewCards = True
         for card in cards:
             if card in player_hand:
                 player_hand.remove(card)
                 card.meld_type = meld_type
                 meld.cards.append(card)
+            else:
+                allNewCards = False
         
         self.players_melds[player_id].append(meld)
-        self.event_log.append(f"{self.player_names[self.player_ids.index(player_id)]} played a {MELD_TYPE_NAMES[meld.meld_type.value]}")
+        meld_cards_info = f"{len(meld.cards)} card{'s' if len(meld.cards) > 1 else ''}"
+        self.event_log.append(f"{self.player_names[self.player_ids.index(player_id)]} {f'played a {MELD_TYPE_NAMES[meld.meld_type.value]} of {meld_cards_info}' if allNewCards else f'added {meld_cards_info} to a {MELD_TYPE_NAMES[meld.meld_type.value]}'}")
         # Check if player's hand is empty (game end condition)
         if len(player_hand) == 0:
             self.event_log.append(f"{self.player_names[self.player_ids.index(player_id)]} is out of cards!")
