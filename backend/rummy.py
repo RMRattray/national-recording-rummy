@@ -27,14 +27,13 @@ class Rank(Enum):
     JACK = 11
     QUEEN = 12
     KING = 13
+    HIGH_ACE = 14
 
 class MeldType(Enum):
     NONE = 0
     SET = 1
     RUN = 2
 
-RANK_NAMES = ['','A','2','3','4','5','6','7','8','9','10','J','Q','K']
-MELD_TYPE_NAMES = ['NONE','SET','RUN']
 
 @dataclass
 class Card:
@@ -66,16 +65,22 @@ def forms_meld(cards: List[Card]) -> MeldType:
     
     rank = cards[0].rank 
     if all(card.rank == rank and card.meld_type != MeldType.RUN for card in cards):
+        if (rank == Rank.ACE):
+            for card in cards:
+                card.rank = Rank.HIGH_ACE
         return MeldType.SET
     
     suit = cards[0].suit 
     if not all(card.suit == suit and card.meld_type != MeldType.SET for card in cards):
         return MeldType.NONE
     
-    ranks = sorted([card.rank.value for card in cards])
-    for i in range(1, len(ranks)):
-        if (not ((ranks[i] == ranks[i - 1] + 1) or (i == 1 and ranks[0] == 1 and ranks[-1] == 13))):
+    cards.sort(key=lambda c: c.rank.value)
+    for i in range(1, len(cards)):
+        if (not ((cards[i].rank.value == cards[i - 1].rank.value + 1) or (i == 1 and cards[0].rank == Rank.ACE and cards[0].meld_type == MeldType.NONE and cards[-1].rank == Rank.KING))):
             return MeldType.NONE
+    
+    if (cards[0].rank == Rank.ACE and cards[-1].rank == Rank.KING):
+        cards[0].rank = Rank.HIGH_ACE
     
     return MeldType.RUN
 
@@ -113,6 +118,7 @@ class RummyGame:
         self.discard_pile: List[Card] = []
         self.current_player = 0
         self.current_player_has_drawn = False
+        self.round = 0
         self.game_over = False
         self.winner = None
         self.scores: Dict[str, int] = {}
@@ -130,7 +136,8 @@ class RummyGame:
         self.stack = []
         for suit in Suit:
             for rank in Rank:
-                self.stack.append(Card(suit, rank, MeldType.NONE))
+                if rank != Rank.HIGH_ACE:
+                    self.stack.append(Card(suit, rank, MeldType.NONE))
         random.shuffle(self.stack)
     
     def _deal_cards(self) -> None:
@@ -264,14 +271,22 @@ class RummyGame:
         # Remove cards from player's hand and add to player's melds
         cards.sort(key=lambda x: x.rank.value) # sort meld
         meld = Meld([], meld_type)
+        allNewCards = True
         for card in cards:
             if card in player_hand:
                 player_hand.remove(card)
                 card.meld_type = meld_type
                 meld.cards.append(card)
+            elif card.rank == Rank.HIGH_ACE and card.meld_type == MeldType.NONE:
+                player_hand.remove(Card(card.suit, Rank.ACE, MeldType.NONE))
+                card.meld_type = meld_type
+                meld.cards.append(card)
+            else:
+                allNewCards = False
         
         self.players_melds[player_id].append(meld)
-        self.event_log.append(f"{self.player_names[self.player_ids.index(player_id)]} played a {MELD_TYPE_NAMES[meld.meld_type.value]}")
+        meld_cards_info = f"{len(meld.cards)} card{'s' if len(meld.cards) > 1 else ''}"
+        self.event_log.append(f"{self.player_names[self.player_ids.index(player_id)]} {f'played a {meld.meld_type.name} of {meld_cards_info}' if allNewCards else f'added {meld_cards_info} to a {meld.meld_type.name}'}")
         # Check if player's hand is empty (game end condition)
         if len(player_hand) == 0:
             self.event_log.append(f"{self.player_names[self.player_ids.index(player_id)]} is out of cards!")
@@ -413,7 +428,7 @@ class RummyGame:
         Returns:
             Points for the card (15 for ace, 10 for face cards, 5 for number cards)
         """
-        if card.rank == Rank.ACE:
+        if card.rank == Rank.HIGH_ACE:
             return 15
         elif card.rank in [Rank.JACK, Rank.QUEEN, Rank.KING]:
             return 10
@@ -448,29 +463,41 @@ class RummyGame:
         self.game_over = True
         
         # Calculate scores for all players
-        over_500 = False
+        maxScore = 499 # if score is broken, in "winning" territory.  Will never be equal to this score b/c cards worth fives
+        tied = False
         for player_id in self.player_ids:
             round_score = self._calculate_player_score(player_id)
             name = self.player_names[self.player_ids.index(player_id)]
             self.scores[player_id] += round_score
             self.event_log.append(f"{name} gets {round_score} points, for a total of {self.scores[player_id]}")
-            if (self.scores[player_id] > 500):
-                over_500 = True
+            if (self.scores[player_id] > maxScore):
+                maxScore = self.scores[player_id]
+                tied = False 
+            elif (self.scores[player_id] == maxScore):
+                tied = True
  
-        
-        if (not over_500):
-            self.event_log.append("No one has over 500 points - play continues")
-            # Create and shuffle deck
-            self._create_deck()
-
-            self._deal_cards()
-
-            self.end_turn()
-        
-        else:
+        if (maxScore >= 500 and not tied):
             # Find the winner (highest score)
             self.winner = self.player_names[self.player_ids.index(max(self.player_ids, key=lambda pid: self.scores[pid]))]
             self.event_log.append(f"{self.winner} wins!")
+            return
+        
+        if (maxScore < 500 ):
+            self.event_log.append("No one has 500 points - play continues")
+        else:
+            self.event_log.append("Players are tied at or above 500 - play continues")
+
+        # Create and shuffle deck
+        self._create_deck()
+
+        self._deal_cards()
+
+        self.end_turn()
+
+        # End round (make separate function?)
+        self.round += 1
+        self.current_player = self.round % self.num_players
+
     
     def end_turn(self) -> None:
         """End the current player's turn and move to the next player."""

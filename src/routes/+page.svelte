@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { RummyGame, Card, Suit, Value } from '$lib';
+	import { RummyGame, Card, Suit, Rank } from '$lib';
 	import GameContainer from '$lib/game-container.svelte';
 	import WelcomeScreen from '$lib/WelcomeScreen.svelte';
 
@@ -22,7 +22,8 @@
 	$effect(() => console.log(currentGame));
 
 	function convertCardData(cardData: any): Card {
-		return new Card(cardData.suit, cardData.value, cardData.meld_type
+		console.log(cardData.rank);
+		return new Card(cardData.suit, Rank[cardData.rank] as unknown as Rank, cardData.meld_type
 		);
 	}
 
