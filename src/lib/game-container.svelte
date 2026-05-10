@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { RummyGame, Card, Suit, Value, MeldType, formsMeld } from '$lib';
+    import { RummyGame, Card, Suit, Rank, MeldType, formsMeld } from '$lib';
     import Playerbox from '$lib/playerbox.svelte';
     import CardBox from '$lib/cardbox.svelte';
     let { 
@@ -100,11 +100,11 @@
                     <button 
                         class="clickable-card" 
                         class:disabled={!isMyTurn}
-                        onclick={(e) => handleCardClick(new Card(Suit.SPADES, Value.ACE, MeldType.NONE), 'stack', e)}
+                        onclick={(e) => handleCardClick(new Card(Suit.SPADES, Rank.ACE, MeldType.NONE), 'stack', e)}
                         type="button"
                         disabled={!isMyTurn}
                     >
-                        <CardBox card={new Card(Suit.SPADES, Value.ACE, MeldType.NONE)} revealed={false}/>
+                        <CardBox card={new Card(Suit.SPADES, Rank.ACE, MeldType.NONE)} revealed={false}/>
                     </button>
                     {/if}
 					{#each currentGame.discards as card}

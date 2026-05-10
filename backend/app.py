@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from rummy import RummyGame, Card, Suit, Rank, MeldType, RANK_NAMES, MELD_TYPE_NAMES
+from rummy import RummyGame, Card, Suit, Rank, MeldType
 import uuid
 from typing import Dict, List, Optional
 import json
@@ -179,10 +179,15 @@ def start_game():
         }), 500
 
 def convert_card(card: Card) -> Dict:
-    return {"suit": card.suit.value, "value": RANK_NAMES[card.rank.value], "meld_type": MELD_TYPE_NAMES[card.meld_type.value]}
+    return {"suit": card.suit.value, "rank": card.rank.name, "meld_type": card.meld_type.name}
 
 def convert_card_back(data: Dict) -> Card:
-    return Card(suit=Suit(data["suit"]), rank=Rank(RANK_NAMES.index(data["value"])), meld_type=MeldType(MELD_TYPE_NAMES.index(data["meld_type"])))
+    try:
+        c = Card(suit=Suit(data["suit"]), rank=Rank(int(data["rank"])), meld_type=MeldType[data["meld_type"]])
+        return c
+    except:
+        print("Received invalid card description from client")
+        return Card(Suit.SPADES, Rank.ACE, MeldType.NONE)
 
 def get_game_for_player(game_id: str, player_id: str) -> Dict:
     """Helper function to get the game state for a specific player."""

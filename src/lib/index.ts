@@ -8,20 +8,21 @@ export enum Suit {
     SPADES = 'spades'
 }
 
-export enum Value {
-    ACE = 'A',
-    TWO = '2',
-    THREE = '3',
-    FOUR = '4',
-    FIVE = '5',
-    SIX = '6',
-    SEVEN = '7',
-    EIGHT = '8',
-    NINE = '9',
-    TEN = '10',
-    JACK = 'J',
-    QUEEN = 'Q',
-    KING = 'K'
+export enum Rank {
+    ACE = 1,
+    TWO = 2,
+    THREE = 3,
+    FOUR = 4,
+    FIVE = 5,
+    SIX = 6,
+    SEVEN = 7,
+    EIGHT = 8,
+    NINE = 9,
+    TEN = 10,
+    JACK = 11,
+    QUEEN = 12,
+    KING = 13,
+    HIGH_ACE = 14
 }
 
 export enum MeldType {
@@ -33,12 +34,12 @@ export enum MeldType {
 // Card class
 export class Card {
     suit: Suit;
-    value: Value;
+    rank: Rank;
     meld_type: MeldType;
 
-    constructor(suit: Suit, value: Value, meld_type: MeldType) {
+    constructor(suit: Suit, rank: Rank, meld_type: MeldType) {
         this.suit = suit;
-        this.value = value;
+        this.rank = rank;
         this.meld_type = meld_type;
     }
 }
@@ -52,9 +53,9 @@ export function formsMeld(cards: Set<Card>): boolean {
     }
 
     // ----- Check for SET -----
-    const firstRank = list[0].value;
+    const firstRank = list[0].rank;
     const isSet = list.every(
-        card => card.value === firstRank && card.meld_type !== MeldType.RUN
+        card => card.rank === firstRank && card.meld_type !== MeldType.RUN
     );
 
     if (isSet) {
@@ -71,34 +72,15 @@ export function formsMeld(cards: Set<Card>): boolean {
         return false;
     }
 
-    // Sort ranks
-    const valueMenu = new Map<Value, number>();
-    valueMenu.set(Value.ACE, 1);
-    valueMenu.set(Value.TWO, 2);
-    valueMenu.set(Value.THREE, 3);
-    valueMenu.set(Value.FOUR, 4);
-    valueMenu.set(Value.FIVE, 5);
-    valueMenu.set(Value.SIX, 6);
-    valueMenu.set(Value.SEVEN, 7);
-    valueMenu.set(Value.EIGHT, 8);
-    valueMenu.set(Value.NINE, 9);
-    valueMenu.set(Value.TEN, 10);
-    valueMenu.set(Value.JACK, 11);
-    valueMenu.set(Value.QUEEN, 12);
-    valueMenu.set(Value.KING, 13);
-
-    const ranks = list
-        .map(card => card.value)
-        .map(x => valueMenu.get(x)!)
-        .sort((a, b) => a - b);
+    list.sort((a, b) => a.rank - b.rank);
 
     // Check consecutive ranks, including Ace–King wrap
-    for (let i = 1; i < ranks.length; i++) {
-        const prev = ranks[i - 1];
-        const curr = ranks[i];
+    for (let i = 1; i < list.length; i++) {
+        const prev = list[i - 1].rank;
+        const curr = list[i].rank;
 
         const normalStep = curr === prev + 1;
-        const aceWrap = i === 1 && ranks[0] === 1 && ranks[ranks.length - 1] === 13;
+        const aceWrap = i === 1 && list[0].rank === 1 && list[0].meld_type === MeldType.NONE && list[list.length - 1].rank === 13;
 
         if (!normalStep && !aceWrap) {
             return false;

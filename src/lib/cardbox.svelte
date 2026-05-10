@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Card, Suit } from '$lib';
+	import { Card, Suit, Rank } from '$lib';
     let { card, revealed }: { card: Card, revealed: boolean } = $props();
 
     // Helper function to get card color
@@ -16,13 +16,34 @@
 			case Suit.SPADES: return '♠';
 		}
 	}
+
+	// Helper function to get rank symbol
+	function getRankSymbol(rank: Rank): string {
+		console.log(rank);
+		switch (rank) {
+			case Rank.ACE: return 'A';
+			case Rank.TWO: return '2';
+			case Rank.THREE: return '3';
+			case Rank.FOUR: return '4';
+			case Rank.FIVE: return '5';
+			case Rank.SIX: return '6';
+			case Rank.SEVEN: return '7';
+			case Rank.EIGHT: return '8';
+			case Rank.NINE: return '9';
+			case Rank.TEN: return '10';
+			case Rank.JACK: return 'J';
+			case Rank.QUEEN: return 'Q';
+			case Rank.KING: return 'K';
+			case Rank.HIGH_ACE: return 'A';
+		}
+	}
 </script>
 
 <div class="card" class:revealed-card={revealed} class:hidden-card={!revealed}>
     {#if revealed}
         <div class="card-top" style="color: {getCardColor(card.suit)}">
             <span class="suit"></span>
-            <span class="value">{card.value}</span>
+            <span class="value">{getRankSymbol(card.rank)}</span>
         </div>
         <div class="card-center" style="color: {getCardColor(card.suit)}">
             <span class="suit-large">{getSuitSymbol(card.suit)}</span>

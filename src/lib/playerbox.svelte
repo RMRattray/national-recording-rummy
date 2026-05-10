@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { RummyGame, Card, Suit, Value, MeldType } from '$lib';
+	import { RummyGame, Card, Suit, Rank, MeldType } from '$lib';
 	import CardBox from '$lib/cardbox.svelte';
 
     let { 
@@ -118,7 +118,7 @@
 			{:else}
 				<!-- Show hidden cards for other players -->
 				{#each Array(handCount) as _, i}
-					<CardBox card={new Card(Suit.SPADES, Value.ACE, MeldType.NONE)} revealed={false} />
+					<CardBox card={new Card(Suit.SPADES, Rank.ACE, MeldType.NONE)} revealed={false} />
 				{/each}
 			{/if}
 		</div>
